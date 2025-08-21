@@ -11,11 +11,11 @@ jobs:
     name: Deploy Backend
     runs-on: ubuntu-latest
     env:
-      AWS_ECR_REPOSITORY_NAME: user-management-service-versapath
-      AWS_ECS_CLUSTER_NAME: versapath-cluster
-      AWS_ECS_SERVICE_NAME: user-management-service-versapath
-      AWS_ECS_TASK_DEFINITION: user-management-service-versapath
-      AWS_ECS_TASK_DEFINITION_CONTAINER_NAME: user-management-service-versapath
+      AWS_ECR_REPOSITORY_NAME: versapath/user-management-service
+      AWS_ECS_CLUSTER_NAME: versapath
+      AWS_ECS_SERVICE_NAME: versapath-user-management-service
+      AWS_ECS_TASK_DEFINITION: versapath-user-management-service.json
+      AWS_ECS_TASK_DEFINITION_CONTAINER_NAME: user-management-service
       AWS_DEFAULT_REGION: eu-west-1
       IMAGE_TAG: ${{ github.sha }}
 
