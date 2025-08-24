@@ -13,6 +13,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(exclude = "theUsers")
+@Builder
 public class Role {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -22,7 +23,7 @@ public class Role {
     @Column(name = "role_name", nullable = false, unique = true)
     private ERole role;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 100)
     private String description;
 
     @Column(name = "created_at", updatable = false)
