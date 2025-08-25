@@ -39,7 +39,7 @@ public class RoleController {
     })
     public ResponseEntity<ApiResponseDto<List<RoleDto>>> getAllRoles() {
         List<RoleDto> roles = roleService.getAllRoles();
-        return ResponseEntity.ok(ApiResponseDto.success(roles, "Roles retrieved successfully"));
+        return ResponseEntity.ok(ApiResponseDto.success(roles, "Role retrieved successfully"));
     }
 
     @GetMapping("/{id}")
