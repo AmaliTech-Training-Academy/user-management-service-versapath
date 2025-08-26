@@ -25,7 +25,7 @@ public class User {
     @Column(name = "last_name")
     private String lastName;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String username;
 
     @Column(nullable = false, unique = true)
@@ -63,7 +63,6 @@ public class User {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-        status = EStatus.INACTIVE;
     }
 
     @PreUpdate
