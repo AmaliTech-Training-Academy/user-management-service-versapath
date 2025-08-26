@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,6 +22,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/roles")
+@PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
 @Tag(name = "Role Management", description = "APIs for role management operations")
 public class RoleController {
@@ -39,7 +41,7 @@ public class RoleController {
     })
     public ResponseEntity<ApiResponseDto<List<RoleDto>>> getAllRoles() {
         List<RoleDto> roles = roleService.getAllRoles();
-        return ResponseEntity.ok(ApiResponseDto.success(roles, "Role retrieved successfully"));
+        return ResponseEntity.ok(ApiResponseDto.success(roles, "Roles retrieved successfully"));
     }
 
     @GetMapping("/{id}")
