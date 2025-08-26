@@ -20,7 +20,7 @@ public class RoleDto {
     private UUID id;
 
     @Schema(description = "Role name", example = "ADMIN", allowableValues = {"ADMIN", "MANAGER", "MENTOR", "LEARNER"})
-    private ERole name;
+    private ERole role;
 
     @Schema(description = "Role description", example = "System administrator with full access")
     private String description;
