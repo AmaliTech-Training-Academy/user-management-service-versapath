@@ -113,4 +113,56 @@ public class GlobalExceptionHandler {
     private String formatConstraintViolation(ConstraintViolation<?> violation) {
         return String.format("%s: %s", violation.getPropertyPath(), violation.getMessage());
     }
+
+    // User Registration Exception
+    // ===========================
+
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleUserAlreadyExistsException(UserAlreadyExistsException ex) {
+        log.error("User already exists: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponseDto.error(ex.getMessage(), "User already exists"));
+    }
+
+    @ExceptionHandler(InvalidRegistrationTokenException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleInvalidRegistrationTokenException(InvalidRegistrationTokenException ex) {
+        log.error("Invalid registration token: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponseDto.error(ex.getMessage(), "Invalid registration token"));
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleUserNotFoundException(UserNotFoundException ex) {
+        log.error("User not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponseDto.error(ex.getMessage(), "User not found"));
+    }
+
+    @ExceptionHandler(UserNotPendingException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleUserNotPendingException(UserNotPendingException ex) {
+        log.error("User not in pending status: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponseDto.error(ex.getMessage(), "User registration not pending"));
+    }
+
+    @ExceptionHandler(PasswordMismatchException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handlePasswordMismatchException(PasswordMismatchException ex) {
+        log.error("Password mismatch: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponseDto.error(ex.getMessage(), "Password validation failed"));
+    }
+
+    @ExceptionHandler(UsernameAlreadyExistsException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleUsernameAlreadyExistsException(UsernameAlreadyExistsException ex) {
+        log.error("Username already exists: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponseDto.error(ex.getMessage(), "Username already taken"));
+    }
+
+    @ExceptionHandler(EmailSendingException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleEmailSendingException(EmailSendingException ex) {
+        log.error("Email sending failed: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponseDto.error("Failed to send email notification", "Email service error"));
+    }
 }
