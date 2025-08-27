@@ -2,9 +2,7 @@ package com.capstone.controller;
 
 import com.capstone.dto.request.PasswordSetupRequest;
 import com.capstone.dto.request.UserRegistrationRequest;
-import com.capstone.dto.response.ApiResponseDto;
-import com.capstone.dto.response.PasswordSetupResponse;
-import com.capstone.dto.response.UserRegistrationResponse;
+import com.capstone.dto.response.*;
 import com.capstone.service.RegistrationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -14,13 +12,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/api/v1/register")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "User Registration", description = "Endpoints for user registration and invitation management")
@@ -88,6 +88,22 @@ public class RegistrationController {
         log.info("Admin resending invitation to email: {}", email);
         ApiResponseDto<String> response = registrationService.resendInvitation(email);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/all")
+    @Operation(
+            summary = "Get all users",
+            description = "Retrieve paginated users with customizable page, size, and sorting. " +
+                    "Use query params: ?page=0&size=10&sort=email,asc"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Users retrieved successfully")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponseDto<PaginatedResponseDto<UserSummaryDto>>> getAllUser(
+            @ParameterObject Pageable pageable) {
+        PaginatedResponseDto<UserSummaryDto> response = registrationService.getAllUser(pageable);
+        return ResponseEntity.ok(ApiResponseDto.success(response));
     }
 
 }
