@@ -9,5 +9,5 @@ public interface RegistrationService {
     ApiResponseDto<UserRegistrationResponse> inviteUser(UserRegistrationRequest request);
     ApiResponseDto<PasswordSetupResponse> completeRegistration(String token,PasswordSetupRequest request);
     ApiResponseDto<String> resendInvitation(String email);
-    PaginatedResponseDto<UserSummaryDto> getAllUser(Pageable pageable);
+    PaginatedResponseDto<UserInfoDto> getAllUser(Pageable pageable);
 }
