@@ -216,7 +216,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
     @Override
-    public PaginatedResponseDto<UserSummaryDto> getAllUser(Pageable pageable) {
+    public PaginatedResponseDto<UserInfoDto> getAllUser(Pageable pageable) {
         log.info("Fetching users with pagination={}", pageable);
 
         Page<User> users = userRepository.findAll(pageable);

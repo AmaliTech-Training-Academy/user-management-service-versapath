@@ -3,8 +3,8 @@ package com.capstone.mapper;
 import com.capstone.dto.request.PasswordSetupRequest;
 import com.capstone.dto.request.UserRegistrationRequest;
 import com.capstone.dto.response.PasswordSetupResponse;
+import com.capstone.dto.response.UserInfoDto;
 import com.capstone.dto.response.UserRegistrationResponse;
-import com.capstone.dto.response.UserSummaryDto;
 import com.capstone.model.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -64,7 +64,7 @@ public interface RegistrationMapper {
     @Mapping(source = "id", target = "userId")
     PasswordSetupResponse toPasswordSetupResponse(User user);
 
-    @Mapping(target = "roleName", source = "role.role")
+    @Mapping(target = "role", source = "role.role")
     @Mapping(target = "status", source = "status")
-    UserSummaryDto toUserSummaryDto(User user);
+    UserInfoDto toUserSummaryDto(User user);
 }

@@ -100,9 +100,9 @@ public class RegistrationController {
             @ApiResponse(responseCode = "200", description = "Users retrieved successfully")
     })
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponseDto<PaginatedResponseDto<UserSummaryDto>>> getAllUser(
+    public ResponseEntity<ApiResponseDto<PaginatedResponseDto<UserInfoDto>>> getAllUser(
             @ParameterObject Pageable pageable) {
-        PaginatedResponseDto<UserSummaryDto> response = registrationService.getAllUser(pageable);
+        PaginatedResponseDto<UserInfoDto> response = registrationService.getAllUser(pageable);
         return ResponseEntity.ok(ApiResponseDto.success(response));
     }
 
