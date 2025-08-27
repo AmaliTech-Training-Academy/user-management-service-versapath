@@ -15,25 +15,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     Optional<User> findByEmail(String email);
 
-    Optional<User> findByUsername(String username);
-
     boolean existsByEmail(String email);
 
     boolean existsByUsername(String username);
 
     Optional<User> findByEmailAndStatus(String email, EStatus status);
 
-    boolean existsByEmailAndStatus(String email, EStatus status);
-
-    /**
-     * Find user by ID with role information
-     */
     @Query("SELECT u FROM User u JOIN FETCH u.role WHERE u.id = :userId")
     Optional<User> findByIdWithRole(@Param("userId") UUID userId);
-
-    /**
-     * Find user by email with role information
-     */
-    @Query("SELECT u FROM User u JOIN FETCH u.role WHERE u.email = :email")
-    Optional<User> findByEmailWithRole(@Param("email") String email);
 }
