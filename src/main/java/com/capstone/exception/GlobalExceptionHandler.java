@@ -1,11 +1,15 @@
 package com.capstone.exception;
 
 import com.capstone.dto.response.ApiResponseDto;
+import io.jsonwebtoken.JwtException;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -98,13 +102,6 @@ public class GlobalExceptionHandler {
                 .body(ApiResponseDto.error(ex.getMessage(), "Invalid argument"));
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleGenericException(Exception ex) {
-        log.error("Unexpected error occurred: {}", ex.getMessage(), ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponseDto.error("An unexpected error occurred", "Internal server error"));
-    }
-
     // Helper methods
     private String formatFieldError(FieldError fieldError) {
         return String.format("%s: %s", fieldError.getField(), fieldError.getDefaultMessage());
@@ -164,5 +161,43 @@ public class GlobalExceptionHandler {
         log.error("Email sending failed: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponseDto.error("Failed to send email notification", "Email service error"));
+    }
+
+    // User Authentication
+    //====================
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleBadCredentials(BadCredentialsException e) {
+        log.warn("Authentication failed: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponseDto.error("Invalid email or password", "Authentication failed"));
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleDisabledException(DisabledException e) {
+        log.warn("Account disabled: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponseDto.error("Account is disabled. Please contact administrator", "Account disabled"));
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleAuthenticationException(AuthenticationException e) {
+        log.error("Authentication error: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponseDto.error("Authentication failed", "Authentication error"));
+    }
+
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleJwtException(JwtException e) {
+        log.error("JWT error: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponseDto.error("Invalid or expired token", "Token error"));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleGenericException(Exception ex) {
+        log.error("Unexpected error occurred: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponseDto.error("An unexpected error occurred", "Internal server error"));
     }
 }
