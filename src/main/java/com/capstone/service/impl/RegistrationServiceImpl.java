@@ -2,9 +2,7 @@ package com.capstone.service.impl;
 
 import com.capstone.dto.request.PasswordSetupRequest;
 import com.capstone.dto.request.UserRegistrationRequest;
-import com.capstone.dto.response.ApiResponseDto;
-import com.capstone.dto.response.PasswordSetupResponse;
-import com.capstone.dto.response.UserRegistrationResponse;
+import com.capstone.dto.response.*;
 import com.capstone.exception.*;
 import com.capstone.mapper.RegistrationMapper;
 import com.capstone.model.EStatus;
@@ -14,10 +12,13 @@ import com.capstone.repository.RoleRepository;
 import com.capstone.repository.UserRepository;
 import com.capstone.service.EmailService;
 import com.capstone.service.RegistrationService;
+import com.capstone.util.PaginationUtil;
 import com.capstone.util.RegistrationTokenUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -213,4 +214,17 @@ public class RegistrationServiceImpl implements RegistrationService {
             throw new RuntimeException("Failed to resend invitation", e);
         }
     }
+
+    @Override
+    public PaginatedResponseDto<UserSummaryDto> getAllUser(Pageable pageable) {
+        log.info("Fetching users with pagination={}", pageable);
+
+        Page<User> users = userRepository.findAll(pageable);
+
+        return PaginationUtil.toPaginatedResponse(
+                users.map(registrationMapper::toUserSummaryDto)
+        );
+    }
+
+
 }
