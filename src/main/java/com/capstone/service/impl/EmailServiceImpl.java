@@ -3,7 +3,6 @@ package com.capstone.service.impl;
 import com.capstone.model.ERole;
 import com.capstone.service.EmailService;
 import com.capstone.service.emails.EmailTemplateService;
-import com.capstone.service.emails.RoleDescriptionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,7 +20,6 @@ public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
     private final EmailTemplateService templateService;
-    private final RoleDescriptionService roleDescriptorService;
 
     @Value("${APP_NOTIFICATION_EMAIL_FROM}")
     private String fromEmail;
@@ -40,11 +38,9 @@ public class EmailServiceImpl implements EmailService {
             helper.setFrom(fromEmail);
             helper.setTo(toEmail);
 
-            String roleName = roleDescriptorService.getRoleName(role);
-            helper.setSubject(String.format("%s Welcome to VersaPath - %s Invitation", subjectPrefix, roleName));
+            helper.setSubject(String.format("%s Welcome to VersaPath Platform", subjectPrefix));
 
-            String roleDescription = roleDescriptorService.getRoleDescription(role);
-            String htmlBody = templateService.buildRegistrationInvitationHtml(registrationLink, roleName, roleDescription);
+            String htmlBody = templateService.buildRegistrationInvitationHtml(registrationLink, role.name());
             helper.setText(htmlBody, true);
 
             mailSender.send(message);
