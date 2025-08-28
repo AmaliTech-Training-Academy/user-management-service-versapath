@@ -31,11 +31,124 @@ jobs:
         run: mvn -B clean install
 
       - name: Run tests
-        run: mvn test
+        run: mvn verify
 
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
+      - name: Upload coverage report
+        uses: coverallsapp/github-action@v2
+        continue-on-error: true
         with:
-          name: test-results
-          path: target/surefire-reports/
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: target/site/jacoco/jacoco.xml
+      
+      - name: Extract coverage table
+        if: github.event_name == 'pull_request'
+        id: coverage_summary
+        run: |
+          echo "Installing dependencies for parsing coverage summary"
+          sudo apt-get update
+          sudo apt-get install -y libxml2-utils tidy
+      
+          # Check if JaCoCo report exists
+          if [ ! -f "target/site/jacoco/index.html" ]; then
+            echo "Error: JaCoCo report not found at target/site/jacoco/index.html"
+            exit 1
+          fi
+      
+          echo "Extract coverage summary table"
+          tidy -quiet -asxhtml target/site/jacoco/index.html 2>/dev/null | \
+            xmllint --html --xpath "//table[1]" - 2>/dev/null | \
+            perl -pe 's/<(\w+)[^>]*>/<\1>/g' > coverage-table.html
+      
+          # Verify we got some content
+          if [ ! -s coverage-table.html ]; then
+            echo "Error: Failed to extract coverage table"
+            exit 1
+          fi
+      
+          echo "Store the extracted coverage summary table for GitHub Actions output"
+          {
+            echo 'table<<EOF'
+            cat coverage-table.html
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+      
+      - name: Generate JaCoCo badge
+        if: github.event_name == 'pull_request'
+        uses: cicirello/jacoco-badge-generator@v2
+        continue-on-error: true
+        with:
+          jacoco-csv-file: target/site/jacoco/jacoco.csv
+      
+      - name: Check for existing coverage comment
+        if: github.event_name == 'pull_request'
+        id: existing_comment
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Look for existing coverage comment
+          COMMENT_ID=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/issues/$PR_NUMBER/comments \
+            --jq '.[] | select(.body | contains("## ✅ Code Coverage")) | .id' | head -1)
+      
+          echo "existing_comment_id=$COMMENT_ID" >> "$GITHUB_OUTPUT"
+      
+      - name: Post or update coverage summary comment
+        if: github.event_name == 'pull_request'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Prepare comment body
+          TABLE="${{ steps.coverage_summary.outputs.table }}"
+          EXISTING_COMMENT_ID="${{ steps.existing_comment.outputs.existing_comment_id }}"
+      
+          # Create the comment body
+          COMMENT_BODY="## ✅ Test Coverage Summary
+      
+          "
+      
+          # Add badge from Coveralls if repo info is available
+          ORG="${GITHUB_REPOSITORY_OWNER}"
+          REPO=$(basename "$GITHUB_REPOSITORY")
+          BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+      
+          COVERALLS_BADGE="https://coveralls.io/repos/github/$ORG/$REPO/badge.svg?branch=$BRANCH"
+      
+          COMMENT_BODY="$COMMENT_BODY![Coverage Status]($COVERALLS_BADGE)
+      
+          ### Detailed Coverage Report
+          $TABLE
+      
+          ---
+          *Coverage report generated on $(date)*"
+      
+          # Create JSON payload using here-doc to avoid shell escaping issues
+          cat << EOF > /tmp/comment_payload.json
+          {
+            "body": $(echo "$COMMENT_BODY" | jq -Rs .)
+          }
+          EOF
+      
+          # Update existing comment or create a new one
+          if [ -n "$EXISTING_COMMENT_ID" ]; then
+            echo "Updating existing comment ID: $EXISTING_COMMENT_ID"
+            gh api \
+              --method PATCH \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "/repos/${{ github.repository }}/issues/comments/$EXISTING_COMMENT_ID" \
+              --input /tmp/comment_payload.json
+          else
+            echo "Creating new coverage comment"
+            gh api \
+              --method POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "/repos/${{ github.repository }}/issues/$PR_NUMBER/comments" \
+              --input /tmp/comment_payload.json
+          fi
+      
+          rm -f /tmp/comment_payload.json
