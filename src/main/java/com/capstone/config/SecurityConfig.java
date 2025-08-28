@@ -2,6 +2,7 @@ package com.capstone.config;
 
 import com.capstone.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,8 +25,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    @Value("${APP_BASE_URL:http://localhost:8090}")
+    private String baseUrl;
 
+    @Value("${REACT_DEV_SERVER:http://localhost:3000}")
+    private String reactDevServer;
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -117,10 +123,8 @@ public class SecurityConfig {
 
         // Allow specific origins (configure based on your frontend URLs)
         configuration.setAllowedOriginPatterns(List.of(
-                "http://localhost:3000",    // React dev server
-                "http://localhost:4200",    // Angular dev server
-                "http://localhost:8080",    // Local development
-                "https://yourdomain.com"    // Production frontend
+                reactDevServer,    // React dev server
+                baseUrl   // Local development
         ));
 
         configuration.setAllowedMethods(Arrays.asList(
