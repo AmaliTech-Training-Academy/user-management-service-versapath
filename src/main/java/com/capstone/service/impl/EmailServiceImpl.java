@@ -51,4 +51,29 @@ public class EmailServiceImpl implements EmailService {
             throw new RuntimeException("Failed to send registration invitation email", e);
         }
     }
+
+    /**
+     * Send password reset email with role-specific content
+     */
+    public void sendPasswordResetEmail(String toEmail, String resetLink, ERole role) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+
+            helper.setSubject(String.format("%s Password Reset Request", subjectPrefix));
+
+            String htmlBody = templateService.buildPasswordResetHtml(resetLink, role.name());
+            helper.setText(htmlBody, true);
+
+            mailSender.send(message);
+            log.info("Password reset email sent successfully to: {} for role: {}", toEmail, role);
+
+        } catch (MessagingException e) {
+            log.error("Failed to send password reset email to: {} for role: {}", toEmail, role, e);
+            throw new RuntimeException("Failed to send password reset email", e);
+        }
+    }
 }
