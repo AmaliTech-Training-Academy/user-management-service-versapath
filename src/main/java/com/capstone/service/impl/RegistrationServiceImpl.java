@@ -214,17 +214,5 @@ public class RegistrationServiceImpl implements RegistrationService {
             throw new RuntimeException("Failed to resend invitation", e);
         }
     }
-
-    @Override
-    public PaginatedResponseDto<UserInfoDto> getAllUser(Pageable pageable) {
-        log.info("Fetching users with pagination={}", pageable);
-
-        Page<User> users = userRepository.findAll(pageable);
-
-        return PaginationUtil.toPaginatedResponse(
-                users.map(registrationMapper::toUserSummaryDto)
-        );
-    }
-
-
+    
 }
