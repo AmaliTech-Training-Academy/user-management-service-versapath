@@ -1,8 +1,11 @@
 package com.capstone.controller;
 
+import com.capstone.dto.request.ForgotPasswordRequest;
 import com.capstone.dto.request.LoginRequestDto;
+import com.capstone.dto.request.ResetPasswordRequest;
 import com.capstone.dto.response.*;
 import com.capstone.service.AuthenticationService;
+import com.capstone.service.PasswordResetService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -26,6 +29,7 @@ import jakarta.validation.Valid;
 @Tag(name = "Authentication", description = "User authentication and authorization endpoints")
 public class AuthenticationController {
     private final AuthenticationService authenticationService;
+    private final PasswordResetService passwordResetService;
 
     @PostMapping("/login")
     @Operation(
@@ -116,6 +120,54 @@ public class AuthenticationController {
             );
 
         }
+
+    @PostMapping("/forgot-password")
+    @Operation(
+            summary = "Forgot Password",
+            description = "Send password reset link to user's email if account exists and is active"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Password reset process initiated"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data"),
+            @ApiResponse(responseCode = "429", description = "Too many requests")
+    })
+    public ResponseEntity<ApiResponseDto<PasswordResetResponse>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request,
+            HttpServletRequest httpRequest) {
+
+        String clientIp = getClientIp(httpRequest);
+        log.info("Forgot password request from IP: {} for email: {}", clientIp, request.getEmail());
+
+        PasswordResetResponse response = passwordResetService.processForgotPassword(request);
+
+        return ResponseEntity.ok(
+                ApiResponseDto.success(response, response.getMessage())
+        );
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(
+            summary = "Reset Password",
+            description = "Reset user password using valid reset token"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Password reset successful"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data or token"),
+            @ApiResponse(responseCode = "401", description = "Invalid or expired token")
+    })
+    public ResponseEntity<ApiResponseDto<PasswordResetResponse>> resetPassword(
+            @RequestParam("reset") String token, @Valid @RequestBody ResetPasswordRequest request,
+            HttpServletRequest httpRequest) {
+
+        String clientIp = getClientIp(httpRequest);
+        log.info("Reset password request from IP: {}", clientIp);
+
+        PasswordResetResponse response = passwordResetService.resetPassword(token, request);
+
+        return ResponseEntity.ok(
+                ApiResponseDto.success(response, response.getMessage())
+        );
+    }
 
     private String getClientIp(HttpServletRequest request) {
         String xForwardedFor = request.getHeader("X-Forwarded-For");
