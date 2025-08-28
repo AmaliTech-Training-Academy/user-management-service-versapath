@@ -90,20 +90,4 @@ public class RegistrationController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/all")
-    @Operation(
-            summary = "Get all users",
-            description = "Retrieve paginated users with customizable page, size, and sorting. " +
-                    "Use query params: ?page=0&size=10&sort=email,asc"
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Users retrieved successfully")
-    })
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponseDto<PaginatedResponseDto<UserInfoDto>>> getAllUser(
-            @ParameterObject Pageable pageable) {
-        PaginatedResponseDto<UserInfoDto> response = registrationService.getAllUser(pageable);
-        return ResponseEntity.ok(ApiResponseDto.success(response));
-    }
-
 }
