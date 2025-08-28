@@ -163,6 +163,37 @@ public class GlobalExceptionHandler {
                 .body(ApiResponseDto.error("Failed to send email notification", "Email service error"));
     }
 
+    // Password Reset Exceptions
+    // =========================
+
+    @ExceptionHandler(PasswordResetRateLimitExceededException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handlePasswordResetRateLimitException(PasswordResetRateLimitExceededException ex) {
+        log.warn("Password reset rate limit exceeded: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(ApiResponseDto.error(ex.getMessage(), "Rate limit exceeded"));
+    }
+
+    @ExceptionHandler(UserNotActiveForPasswordResetException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleUserNotActiveForPasswordResetException(UserNotActiveForPasswordResetException ex) {
+        log.info("Password reset requested for non-active user: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponseDto.error(ex.getMessage(), "User not eligible for password reset"));
+    }
+
+    @ExceptionHandler(InvalidPasswordResetTokenException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleInvalidPasswordResetTokenException(InvalidPasswordResetTokenException ex) {
+        log.warn("Invalid password reset token: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponseDto.error(ex.getMessage(), "Invalid reset token"));
+    }
+
+    @ExceptionHandler(TokenAlreadyUsedException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleTokenAlreadyUsedException(TokenAlreadyUsedException ex) {
+        log.warn("Token already used: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponseDto.error(ex.getMessage(), "Token already used"));
+    }
+
     // User Authentication
     //====================
 
