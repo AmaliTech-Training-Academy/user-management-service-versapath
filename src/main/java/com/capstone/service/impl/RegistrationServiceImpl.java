@@ -12,13 +12,10 @@ import com.capstone.repository.RoleRepository;
 import com.capstone.repository.UserRepository;
 import com.capstone.service.EmailService;
 import com.capstone.service.RegistrationService;
-import com.capstone.util.PaginationUtil;
 import com.capstone.util.RegistrationTokenUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -214,5 +211,5 @@ public class RegistrationServiceImpl implements RegistrationService {
             throw new RuntimeException("Failed to resend invitation", e);
         }
     }
-    
+
 }
