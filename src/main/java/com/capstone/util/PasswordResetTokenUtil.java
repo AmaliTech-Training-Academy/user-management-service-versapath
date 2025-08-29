@@ -42,14 +42,4 @@ public class PasswordResetTokenUtil {
             throw new RuntimeException("SHA-256 algorithm not available", e);
         }
     }
-
-    /**
-     * Verify raw token against SHA-256 hash stored in database
-     */
-    public boolean verifyToken(String rawToken, String hashedToken) {
-        String computedHash = hashToken(rawToken);
-        boolean matches = computedHash.equals(hashedToken);
-        log.debug("SHA-256 token verification result: {}", matches);
-        return matches;
-    }
 }

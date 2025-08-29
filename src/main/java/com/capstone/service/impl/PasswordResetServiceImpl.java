@@ -81,11 +81,6 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         User user = userRepository.findByValidResetToken(hashedToken, LocalDateTime.now())
                 .orElseThrow(() -> new InvalidPasswordResetTokenException("Invalid or expired password reset token"));
 
-        // Verify token matches (additional security check)
-        if (!passwordResetTokenUtil.verifyToken(token, user.getResetToken())) {
-            throw new InvalidPasswordResetTokenException("Invalid password reset token");
-        }
-
         // Update user password
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         
