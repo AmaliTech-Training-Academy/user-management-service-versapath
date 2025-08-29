@@ -146,8 +146,7 @@ public class AuthenticationController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Password reset successful"),
-            @ApiResponse(responseCode = "400", description = "Invalid input data or token"),
-            @ApiResponse(responseCode = "401", description = "Invalid or expired token")
+            @ApiResponse(responseCode = "400", description = "Invalid or expired token")
     })
     public ResponseEntity<ApiResponseDto<PasswordResetResponse>> resetPassword(
             @RequestParam("reset") String token, @Valid @RequestBody ResetPasswordRequest request) {
