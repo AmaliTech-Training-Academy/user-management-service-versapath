@@ -44,11 +44,8 @@ public class AuthenticationController {
     })
     public ResponseEntity<ApiResponseDto<LoginResponseDto>> login(
             @Valid @RequestBody LoginRequestDto loginRequest,
-            HttpServletRequest request,
             HttpServletResponse response) {
-
-        String clientIp = getClientIp(request);
-        log.info("Login request from IP: {} for email: {}", clientIp, loginRequest.getEmail());
+        log.info("Login request for email: {}", loginRequest.getEmail());
 
         LoginResponseDto loginResponse = authenticationService.login(loginRequest, response);
 
@@ -132,16 +129,13 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "429", description = "Too many requests")
     })
     public ResponseEntity<ApiResponseDto<PasswordResetResponse>> forgotPassword(
-            @Valid @RequestBody ForgotPasswordRequest request,
-            HttpServletRequest httpRequest) {
-
-        String clientIp = getClientIp(httpRequest);
-        log.info("Forgot password request from IP: {} for email: {}", clientIp, request.getEmail());
+            @Valid @RequestBody ForgotPasswordRequest request) {
+        log.info("Forgot password request for email: {}", request.getEmail());
 
         PasswordResetResponse response = passwordResetService.processForgotPassword(request);
 
         return ResponseEntity.ok(
-                ApiResponseDto.success(response, response.getMessage())
+                ApiResponseDto.success(response)
         );
     }
 
@@ -156,28 +150,12 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "401", description = "Invalid or expired token")
     })
     public ResponseEntity<ApiResponseDto<PasswordResetResponse>> resetPassword(
-            @RequestParam("reset") String token, @Valid @RequestBody ResetPasswordRequest request,
-            HttpServletRequest httpRequest) {
-
-        String clientIp = getClientIp(httpRequest);
-        log.info("Reset password request from IP: {}", clientIp);
+            @RequestParam("reset") String token, @Valid @RequestBody ResetPasswordRequest request) {
 
         PasswordResetResponse response = passwordResetService.resetPassword(token, request);
 
         return ResponseEntity.ok(
-                ApiResponseDto.success(response, response.getMessage())
+                ApiResponseDto.success(response)
         );
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isEmpty()) {
-            return xRealIp;
-        }
-        return request.getRemoteAddr();
     }
 }
