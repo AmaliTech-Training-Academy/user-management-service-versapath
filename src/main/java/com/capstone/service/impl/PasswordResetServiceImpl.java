@@ -5,8 +5,6 @@ import com.capstone.dto.request.ResetPasswordRequest;
 import com.capstone.dto.response.PasswordResetResponse;
 import com.capstone.exception.InvalidPasswordResetTokenException;
 import com.capstone.exception.PasswordMismatchException;
-import com.capstone.exception.TokenAlreadyUsedException;
-import com.capstone.exception.UserNotActiveForPasswordResetException;
 import com.capstone.model.EStatus;
 import com.capstone.model.User;
 import com.capstone.repository.UserRepository;
@@ -20,7 +18,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Service
@@ -41,32 +38,33 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     public PasswordResetResponse processForgotPassword(ForgotPasswordRequest request) {
         // Find active user by email
         User user = userRepository.findByEmailAndStatus(request.getEmail(), EStatus.ACTIVE)
-                .orElseThrow(() -> new UserNotActiveForPasswordResetException("User not found or not active"));
+                .orElse(null);
 
         if (user != null) {
-            // Generate password signature for one-time use
-            String passwordSignature = generatePasswordSignature(user.getPassword());
+            // Generate raw reset token
+            String rawToken = passwordResetTokenUtil.generateRawToken();
 
-            // Generate reset token
-            String resetToken = passwordResetTokenUtil.generatePasswordResetToken(
-                    user.getId(), 
-                    user.getEmail(), 
-                    passwordSignature
-            );
+            // Hash token for database storage
+            String hashedToken = passwordResetTokenUtil.hashToken(rawToken);
 
-            // Create reset link
-            String resetLink = passwordResetFrontendUri + resetToken;
+            // Set reset token and expiration (1 hour from now)
+            user.setResetToken(hashedToken);
+            user.setResetTokenExpiresAt(LocalDateTime.now().plusHours(1));
+            userRepository.save(user);
+
+            // Create reset link with raw token
+            String resetLink = passwordResetFrontendUri + rawToken;
 
             // Send password reset email
-            emailService.sendPasswordResetEmail(user.getEmail(), resetLink, user.getRole().getRole());
+            emailService.sendPasswordResetEmail(user.getEmail(), resetLink, user.getLastName());
 
             log.info("Password reset email sent to: {}", user.getEmail());
-            return new PasswordResetResponse("A password reset link has been sent.");
         } else {
             log.warn("Password reset requested for non-existent or inactive user: {}", request.getEmail());
-
-            return new PasswordResetResponse("A password reset link has been not sent.\n User not found or not active");
         }
+
+        // Always return same response for security (email enumeration protection)
+        return new PasswordResetResponse("If the email exists and account is active, a password reset link has been sent.");
     }
 
     @Override
@@ -76,41 +74,24 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new PasswordMismatchException("New password and confirm password do not match");
         }
+        // Hash the received raw token
+        String hashedToken = passwordResetTokenUtil.hashToken(token);
 
-        // Parse and validate token
-        PasswordResetTokenUtil.PasswordResetTokenData tokenData = 
-                passwordResetTokenUtil.validateAndParseToken(token);
-
-        // Find user
-        User user = userRepository.findByEmailAndStatus(tokenData.getEmail(), EStatus.ACTIVE)
-                .orElseThrow(() -> new UserNotActiveForPasswordResetException("User not found or not active"));
-
-        // Verify user ID matches token
-        if (!user.getId().equals(tokenData.getUserId())) {
-            throw new InvalidPasswordResetTokenException("Invalid token");
-        }
-
-        // Verify password signature (one-time use check)
-        String currentPasswordSignature = generatePasswordSignature(user.getPassword());
-        if (!currentPasswordSignature.equals(tokenData.getPasswordSignature())) {
-            throw new TokenAlreadyUsedException("Password reset token has already been used");
-        }
+        // Find user with valid reset token (token exists and not expired)
+        User user = userRepository.findByValidResetToken(hashedToken, LocalDateTime.now())
+                .orElseThrow(() -> new InvalidPasswordResetTokenException("Invalid or expired password reset token"));
 
         // Update user password
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        
+        // Clear reset token fields (one-time use)
+        user.setResetToken(null);
+        user.setResetTokenExpiresAt(null);
+        
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
 
         log.info("Password successfully reset for user: {}", user.getEmail());
         return new PasswordResetResponse("Password has been reset successfully");
-    }
-
-
-    /**
-     * Generate password signature for one-time token validation
-     */
-    private String generatePasswordSignature(String passwordHash) {
-        // Use first 20 characters of BCrypt hash as signature
-        return passwordHash.length() >= 20 ? passwordHash.substring(0, 20) : passwordHash;
     }
 }
