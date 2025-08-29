@@ -18,7 +18,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
 import java.time.LocalDateTime;
 
 @Service
@@ -75,7 +74,6 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new PasswordMismatchException("New password and confirm password do not match");
         }
-
         // Hash the received raw token
         String hashedToken = passwordResetTokenUtil.hashToken(token);
 
@@ -101,5 +99,4 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         log.info("Password successfully reset for user: {}", user.getEmail());
         return new PasswordResetResponse("Password has been reset successfully");
     }
-
 }

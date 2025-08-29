@@ -64,7 +64,7 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(toEmail);
 
             helper.setSubject(String.format("%s Password Reset Request", subjectPrefix));
-
+          
             String htmlBody = templateService.buildPasswordResetHtml(resetLink, userName);
             helper.setText(htmlBody, true);
 
