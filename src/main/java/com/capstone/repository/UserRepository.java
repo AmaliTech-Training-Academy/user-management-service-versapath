@@ -2,6 +2,8 @@ package com.capstone.repository;
 
 import com.capstone.model.User;
 import com.capstone.model.EStatus;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -27,4 +29,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     @Query("SELECT u FROM User u WHERE u.resetToken = :hashedToken AND u.resetTokenExpiresAt > :currentTime")
     Optional<User> findByValidResetToken(@Param("hashedToken") String hashedToken, @Param("currentTime") LocalDateTime currentTime);
+
+    Optional<User> findByUsername(String username);
 }
