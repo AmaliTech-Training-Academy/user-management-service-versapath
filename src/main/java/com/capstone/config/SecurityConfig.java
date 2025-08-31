@@ -77,11 +77,14 @@ public class SecurityConfig {
                         // Admin only endpoints
                         .requestMatchers("/api/v1/register/invite-user","/api/v1/register/resend-invitation").hasRole("ADMIN")
                         .requestMatchers("/api/v1/roles/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/users/**").hasRole("ADMIN")
 
                         // Authenticated endpoints
                         .requestMatchers(
                                 "/api/v1/auth/logout",
-                                "/api/v1/auth/me"
+                                "/api/v1/auth/me",
+                                "/api/v1/users/profile",
+                                "/api/v1/users/password"
                         ).authenticated()
 
                         // All other requests require authentication
