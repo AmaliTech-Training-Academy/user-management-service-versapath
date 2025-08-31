@@ -12,6 +12,7 @@ import com.capstone.dto.response.LoginResponseDto;
 import com.capstone.dto.response.LogoutResponseDto;
 import com.capstone.dto.response.RefreshTokenResponseDto;
 import com.capstone.dto.response.UserInfoDto;
+import com.capstone.dto.response.UserProfileDto;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -74,7 +75,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             UserInfoDto userInfo = UserInfoDto.builder()
                     .id(userDetails.getId().toString())
                     .email(userDetails.getEmail())
-                    .username(userDetails.getUsername())
+                    .username(userDetails.getActualUsername())
                     .firstName(userDetails.getFirstName())
                     .lastName(userDetails.getLastName())
                     .role(userDetails.getRoleWithoutPrefix())
@@ -168,21 +169,20 @@ public class AuthenticationServiceImpl implements AuthenticationService {
      * Get current authenticated user information
      */
     @Override
-    public UserInfoDto getCurrentUser() {
+    public UserProfileDto getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
             throw new RuntimeException("No authenticated user found");
         }
 
-        return UserInfoDto.builder()
+        return UserProfileDto.builder()
                 .id(userDetails.getId().toString())
                 .email(userDetails.getEmail())
-                .username(userDetails.getUsername())
+                .username(userDetails.getActualUsername())
                 .firstName(userDetails.getFirstName())
                 .lastName(userDetails.getLastName())
                 .role(userDetails.getRoleWithoutPrefix())
-                .status(userDetails.getStatus().name())
                 .build();
     }
 }

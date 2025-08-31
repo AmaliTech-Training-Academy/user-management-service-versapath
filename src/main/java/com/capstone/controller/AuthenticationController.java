@@ -108,9 +108,9 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "200", description = "User information retrieved successfully"),
             @ApiResponse(responseCode = "401", description = "User not authenticated")
     })
-    public ResponseEntity<ApiResponseDto<UserInfoDto>> getCurrentUser() {
+    public ResponseEntity<ApiResponseDto<UserProfileDto>> getCurrentUser() {
 
-            UserInfoDto response = authenticationService.getCurrentUser();
+            UserProfileDto response = authenticationService.getCurrentUser();
 
             return ResponseEntity.ok(
                     ApiResponseDto.success(response, "User information retrieved successfully")
