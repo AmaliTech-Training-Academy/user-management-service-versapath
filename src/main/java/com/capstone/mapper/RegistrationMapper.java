@@ -3,7 +3,6 @@ package com.capstone.mapper;
 import com.capstone.dto.request.PasswordSetupRequest;
 import com.capstone.dto.request.UserRegistrationRequest;
 import com.capstone.dto.response.PasswordSetupResponse;
-import com.capstone.dto.response.UserInfoDto;
 import com.capstone.dto.response.UserRegistrationResponse;
 import com.capstone.model.User;
 import org.mapstruct.Mapper;
@@ -30,6 +29,8 @@ public interface RegistrationMapper {
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "resetToken", ignore = true)
+    @Mapping(target = "resetTokenExpiresAt", ignore = true)
     User toEntity(UserRegistrationRequest request);
 
     /*
@@ -54,6 +55,8 @@ public interface RegistrationMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "password", ignore = true)
+    @Mapping(target = "resetToken", ignore = true)
+    @Mapping(target = "resetTokenExpiresAt", ignore = true)
     void updateUserFromRegistrationCompletion(@MappingTarget User user, PasswordSetupRequest request);
 
     /*
@@ -63,8 +66,4 @@ public interface RegistrationMapper {
     @Mapping(target = "success", ignore = true)
     @Mapping(source = "id", target = "userId")
     PasswordSetupResponse toPasswordSetupResponse(User user);
-
-    @Mapping(target = "role", source = "role.role")
-    @Mapping(target = "status", source = "status")
-    UserInfoDto toUserSummaryDto(User user);
 }
