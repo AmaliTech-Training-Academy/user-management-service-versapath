@@ -13,6 +13,7 @@ import com.capstone.dto.response.LogoutResponseDto;
 import com.capstone.dto.response.RefreshTokenResponseDto;
 import com.capstone.dto.response.UserInfoDto;
 import com.capstone.dto.response.UserProfileDto;
+import com.capstone.mapper.UserMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final UserRepository userRepository;
     private final JwtAuthUtil jwtAuthUtil;
     private final CookieUtil cookieUtil;
+    private final UserMapper userMapper;
 
     /**
      * Authenticate user and generate JWT tokens
@@ -71,19 +73,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             // Set refresh token in HttpOnly cookie
             cookieUtil.addRefreshTokenCookie(response, refreshToken);
 
-            // Build response
-            UserInfoDto userInfo = UserInfoDto.builder()
-                    .id(userDetails.getId().toString())
-                    .email(userDetails.getEmail())
-                    .username(userDetails.getActualUsername())
-                    .firstName(userDetails.getFirstName())
-                    .lastName(userDetails.getLastName())
-                    .role(userDetails.getRoleWithoutPrefix())
-                    .status(userDetails.getStatus().name())
-                    .build();
+            // Get User entity to get complete information including timestamps
+            User user = userRepository.findById(userDetails.getId())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Build response using MapStruct
+            UserInfoDto userInfo = userMapper.toUserInfoDto(user);
 
             LoginResponseDto response1 = LoginResponseDto.builder()
-                    .userInfo(userInfo)
+                    .item(userInfo)
                     .tokenType("Bearer")
                     .accessToken(accessToken)
                     .expiresIn(900000) // 15 minutes
@@ -176,13 +174,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new RuntimeException("No authenticated user found");
         }
 
-        return UserProfileDto.builder()
-                .id(userDetails.getId().toString())
-                .email(userDetails.getEmail())
-                .username(userDetails.getActualUsername())
-                .firstName(userDetails.getFirstName())
-                .lastName(userDetails.getLastName())
-                .role(userDetails.getRoleWithoutPrefix())
-                .build();
+        // Get User entity for complete information
+        User user = userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return userMapper.toUserProfileDto(user);
     }
 }
