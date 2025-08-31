@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 public class LoginResponseDto {
 
     @Schema(description = "Basic user information")
-    private UserInfoDto userInfo;
+    private UserInfoDto item;
 
     @Schema(description = "Token type", example = "Bearer")
     private String tokenType;
