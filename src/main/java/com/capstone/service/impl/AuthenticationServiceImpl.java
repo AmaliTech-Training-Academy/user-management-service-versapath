@@ -14,6 +14,7 @@ import com.capstone.dto.response.RefreshTokenResponseDto;
 import com.capstone.dto.response.UserInfoDto;
 import com.capstone.dto.response.UserProfileDto;
 import com.capstone.mapper.UserMapper;
+import com.capstone.service.TokenBlacklistService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final JwtAuthUtil jwtAuthUtil;
     private final CookieUtil cookieUtil;
     private final UserMapper userMapper;
+    private final TokenBlacklistService tokenBlacklistService;
 
     /**
      * Authenticate user and generate JWT tokens
@@ -144,11 +146,34 @@ public class AuthenticationServiceImpl implements AuthenticationService {
      * Logout user (clear security context)
      */
     @Override
-    public LogoutResponseDto logout(HttpServletResponse response) {
+    public LogoutResponseDto logout(HttpServletResponse response, HttpServletRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails userDetails) {
             log.info("User logged out: {}", userDetails.getEmail());
+
+            // Extract and blacklist access token
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String accessToken = authHeader.substring(7);
+                try {
+                    String jti = jwtAuthUtil.getJtiFromToken(accessToken);
+                    java.util.Date expiration = jwtAuthUtil.getExpirationDateFromToken(accessToken);
+                    
+                    if (jti != null && expiration != null) {
+                        // Blacklist the access token
+                        tokenBlacklistService.blacklistToken(jti, expiration.getTime());
+                        log.info("Access token blacklisted for user: {}", userDetails.getEmail());
+                    } else {
+                        log.warn("Could not extract JTI or expiration from access token during logout");
+                    }
+                    
+                } catch (Exception e) {
+                    log.warn("Failed to blacklist access token during logout: {}", e.getMessage());
+                }
+            } else {
+                log.debug("No access token found in Authorization header during logout");
+            }
         }
 
         // Clear refresh token cookie
