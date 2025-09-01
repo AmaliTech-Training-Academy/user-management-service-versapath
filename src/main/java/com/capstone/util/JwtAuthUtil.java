@@ -33,9 +33,11 @@ public class JwtAuthUtil {
      */
     public String generateAccessToken(UUID userId, String email, String role) {
         Instant now = Instant.now();
+        String jti = UUID.randomUUID().toString(); // Add unique token ID
 
         return Jwts.builder()
                 .subject(userId.toString())
+                .id(jti) // Add JWT ID for blacklisting
                 .claim("email", email)
                 .claim("role", role)
                 .claim("type", "ACCESS")
@@ -139,19 +141,36 @@ public class JwtAuthUtil {
         }
     }
 
-    /*
-     * Extract user ID from token without full validation (for logging/debugging)
+    /**
+     * Extract JWT ID (JTI) from token for blacklisting
      */
-    public String extractUserIdFromToken(String token) {
+    public String getJtiFromToken(String token) {
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(getSigningKey())
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-            return claims.getSubject();
+            return claims.getId();
         } catch (Exception e) {
-            log.warn("Could not extract user ID from token: {}", e.getMessage());
+            log.warn("Could not extract JTI from token: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Extract expiration date from token for blacklist TTL calculation
+     */
+    public Date getExpirationDateFromToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return claims.getExpiration();
+        } catch (Exception e) {
+            log.warn("Could not extract expiration from token: {}", e.getMessage());
             return null;
         }
     }

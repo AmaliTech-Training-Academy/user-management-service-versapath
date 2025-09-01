@@ -80,18 +80,20 @@ public class AuthenticationController {
     @PostMapping("/logout")
     @Operation(
             summary = "User Logout",
-            description = "Logout current user, clear session and remove refresh token cookie"
+            description = "Logout current user, blacklist access token, clear session and remove refresh token cookie"
     )
     @SecurityRequirement(name = "Bearer Authentication")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Logout successful"),
             @ApiResponse(responseCode = "401", description = "User not authenticated")
     })
-    public ResponseEntity<ApiResponseDto<LogoutResponseDto>> logout(HttpServletResponse response) {
+    public ResponseEntity<ApiResponseDto<LogoutResponseDto>> logout(
+            HttpServletResponse response,
+            HttpServletRequest request) {
 
         log.info("Logout request received");
 
-        LogoutResponseDto logoutResponse = authenticationService.logout(response);
+        LogoutResponseDto logoutResponse = authenticationService.logout(response, request);
 
         return ResponseEntity.ok(
                 ApiResponseDto.success(logoutResponse, "Logout successful")
