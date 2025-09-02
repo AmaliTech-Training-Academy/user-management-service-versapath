@@ -12,8 +12,6 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class PasswordSetupResponse {
-    private String message;
-    private boolean success;
     private UUID userId;
     private String username;
 }

@@ -48,15 +48,14 @@ public class RegistrationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PostMapping("/complete-registration")
+    @PatchMapping("/complete-registration")
     @Operation(
             summary = "Complete user registration",
             description = "User completes registration by providing personal details and password using the token from invitation email."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Registration completed successfully"),
-            @ApiResponse(responseCode = "400", description = "Invalid token or request data"),
-            @ApiResponse(responseCode = "404", description = "User not found"),
+            @ApiResponse(responseCode = "400", description = "Invalid Request"),
             @ApiResponse(responseCode = "409", description = "Username already taken"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
@@ -77,7 +76,6 @@ public class RegistrationController {
             @ApiResponse(responseCode = "200", description = "Invitation resent successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid request"),
             @ApiResponse(responseCode = "403", description = "Access denied - Admin role required"),
-            @ApiResponse(responseCode = "404", description = "No pending registration found"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @PreAuthorize("hasRole('ADMIN')")
