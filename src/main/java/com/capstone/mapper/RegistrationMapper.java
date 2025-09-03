@@ -37,7 +37,6 @@ public interface RegistrationMapper {
      * Map User entity to registration response
      */
     @Mapping(target = "registrationLink", ignore = true)
-    @Mapping(target = "message", ignore = true)
     @Mapping(target = "tokenExpiresAt", ignore = true)
     @Mapping(source = "id", target = "userId")
     UserRegistrationResponse toRegistrationResponse(User user);
@@ -62,8 +61,6 @@ public interface RegistrationMapper {
     /*
      * Map User entity to password setup response
      */
-    @Mapping(target = "message", ignore = true)
-    @Mapping(target = "success", ignore = true)
     @Mapping(source = "id", target = "userId")
     PasswordSetupResponse toPasswordSetupResponse(User user);
 }

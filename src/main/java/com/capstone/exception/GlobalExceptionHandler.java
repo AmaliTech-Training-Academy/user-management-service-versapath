@@ -104,7 +104,7 @@ public class GlobalExceptionHandler {
 
     // Helper methods
     private String formatFieldError(FieldError fieldError) {
-        return String.format("%s: %s", fieldError.getField(), fieldError.getDefaultMessage());
+        return String.format("%s", fieldError.getDefaultMessage());
     }
 
     private String formatConstraintViolation(ConstraintViolation<?> violation) {
