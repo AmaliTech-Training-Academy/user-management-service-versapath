@@ -10,19 +10,18 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Schema(description = "Login response with tokens and user information")
+@Schema(description = "Simplified login response with basic user information")
 public class LoginResponseDto {
 
-    @Schema(description = "Basic user information")
-    private UserInfoDto item;
+    @Schema(description = "User's unique identifier")
+    private String userId;
 
-    @Schema(description = "Token type", example = "Bearer")
-    private String tokenType;
+    @Schema(description = "User's email address")
+    private String email;
 
-    @Schema(description = "JWT access token for API authentication")
-    private String accessToken;
+    @Schema(description = "User's username")
+    private String username;
 
-    @Schema(description = "Access token expiration time in seconds from now")
-    private long expiresIn;
-
+    @Schema(description = "User's role name", example = "ADMIN")
+    private String role;
 }
