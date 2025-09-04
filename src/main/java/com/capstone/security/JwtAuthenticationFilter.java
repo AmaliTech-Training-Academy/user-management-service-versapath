@@ -1,5 +1,6 @@
 package com.capstone.security;
 
+import com.capstone.util.CookieUtil;
 import com.capstone.util.JwtAuthUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,11 +25,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtAuthUtil jwtAuthUtil;
     private final CustomUserDetailsService userDetailsService;
+    private final CookieUtil cookieUtil;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
-        try{
+        try {
             String jwt = getJwtFromRequest(request);
 
             if (StringUtils.hasText(jwt)) {
@@ -42,7 +45,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     // Create authentication token
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(
-                                    userDetails,null, userDetails.getAuthorities()
+                                    userDetails, null, userDetails.getAuthorities()
                             );
 
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
@@ -54,7 +57,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
 
-        } catch(Exception e){
+        } catch (Exception e) {
             log.error("Cannot set user authentication: {}", e.getMessage());
         }
 
@@ -62,22 +65,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Extract JWT token from Authorization header
+     * Extract JWT token from cookie first, then fallback to Authorization header
      */
     private String getJwtFromRequest(HttpServletRequest request) {
+        // Try to get token from cookie
+        String tokenFromCookie = cookieUtil.getAccessTokenFromCookie(request);
+        if (StringUtils.hasText(tokenFromCookie)) {
+            log.debug("Access token found in cookie");
+            return tokenFromCookie;
+        }
 
+        // Fallback to Authorization header (for API clients)
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            log.debug("Access token found in Authorization header");
             return bearerToken.substring(7);
         }
+
+        log.debug("No access token found in cookie or Authorization header");
         return null;
     }
 
-    /*
+    /**
      * Skip JWT processing for certain endpoints
      */
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+    protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
 
         // Skip JWT filter for public endpoints
@@ -85,7 +98,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 path.startsWith("/api/v1/auth/refresh") ||
                 path.startsWith("/api/v1/auth/forgot-password") ||
                 path.startsWith("/api/v1/auth/reset-password") ||
-                path.startsWith("/api/v1/auth/complete-registration") ||
+                path.startsWith("/api/v1/register/complete-registration") ||
                 path.startsWith("/swagger-ui") ||
                 path.startsWith("/v3/api-docs") ||
                 path.startsWith("/actuator/health");
