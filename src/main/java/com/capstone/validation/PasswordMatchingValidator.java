@@ -2,6 +2,7 @@ package com.capstone.validation;
 
 import com.capstone.dto.request.PasswordSetupRequest;
 import com.capstone.dto.request.PasswordUpdateRequest;
+import com.capstone.dto.request.ResetPasswordRequest;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
@@ -23,15 +24,22 @@ public class PasswordMatchingValidator implements ConstraintValidator<PasswordMa
         String fieldName = "confirmPassword";
 
         // Handle different request types
-        if (obj instanceof PasswordUpdateRequest request) {
-            password = request.getNewPassword();
-            confirmPassword = request.getConfirmPassword();
-        } else if (obj instanceof PasswordSetupRequest request) {
-            password = request.getPassword();
-            confirmPassword = request.getConfirmPassword();
-        } else {
-            // Unsupported type
-            return false;
+        switch (obj) {
+            case PasswordUpdateRequest request -> {
+                password = request.getNewPassword();
+                confirmPassword = request.getConfirmPassword();
+            }
+            case PasswordSetupRequest request -> {
+                password = request.getPassword();
+                confirmPassword = request.getConfirmPassword();
+            }
+            case ResetPasswordRequest request -> {
+                password = request.getNewPassword();
+                confirmPassword = request.getConfirmPassword();
+            }
+            default -> {
+                return false;
+            }
         }
 
         if (password == null || confirmPassword == null) {
