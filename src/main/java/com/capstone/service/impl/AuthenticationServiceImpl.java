@@ -19,6 +19,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +47,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final TokenBlacklistService tokenBlacklistService;
     private final SessionManagementService sessionManagementService;
 
+    @Value("${APP_SESSION_MAX_CONCURRENT_SESSIONS:3}")
+    private int maxConcurrentSessions;
+
     /**
      * Authenticate user and generate JWT tokens
      */
@@ -64,13 +68,29 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
             log.info("User authenticated successfully: {}", userDetails.getUsername());
 
-            // Check if user already has an active session
-            if (sessionManagementService.hasActiveSession(userDetails.getId())) {
-                log.warn("User {} attempted to login with existing active session", userDetails.getEmail());
-                throw new ResponseStatusException(
-                        HttpStatus.CONFLICT,
-                        "User is already logged in with an active session. Please logout from other devices first."
-                );
+            // Get client information
+            String ipAddress = getClientIpAddress(request);
+            String userAgent = request.getHeader("User-Agent");
+
+            // Check if user has too many sessions from DIFFERENT devices
+            int currentSessions = sessionManagementService.getActiveSessionCount(userDetails.getId());
+
+            // Only block if user has max sessions AND this is a different device
+            if (currentSessions >= maxConcurrentSessions) {
+                // Check if any existing session is from same device
+                boolean hasSameDeviceSession = sessionManagementService.getUserSessions(userDetails.getId())
+                        .stream()
+                        .anyMatch(session -> session.getIpAddress().equals(ipAddress) &&
+                                java.util.Objects.equals(session.getUserAgent(), userAgent));
+
+                if (!hasSameDeviceSession) {
+                    log.warn("User {} attempted login from new device but has {} active sessions from different devices",
+                            userDetails.getEmail(), currentSessions);
+                    throw new ResponseStatusException(
+                            HttpStatus.CONFLICT,
+                            String.format("Maximum device limit reached (%d devices). Login from new device blocked.", maxConcurrentSessions)
+                    );
+                }
             }
 
             // Generate tokens
@@ -88,10 +108,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             // Extract token ID for session tracking
             String tokenId = jwtAuthUtil.getJtiFromToken(accessToken);
 
-            // Get client information
-            String ipAddress = getClientIpAddress(request);
-            String userAgent = request.getHeader("User-Agent");
-
             // Create user session
             sessionManagementService.createUserSession(
                     userDetails.getId(),
@@ -108,6 +124,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             User user = userRepository.findById(userDetails.getId())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
+            // Get current session count after login
+            int finalSessionCount = sessionManagementService.getActiveSessionCount(userDetails.getId());
+
             LoginResponseDto loginResponse = LoginResponseDto.builder()
                 .userId(user.getId().toString())
                 .email(user.getEmail())
@@ -115,8 +134,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .role(user.getRole().getRole().name())
                 .build();
 
-            log.info("Login successful for user: {}", userDetails.getEmail());
-            return loginResponse;
+        log.info("Login successful for user: {} (Active sessions: {}/{})",
+                userDetails.getEmail(), finalSessionCount, maxConcurrentSessions);
+        return loginResponse;
 
     }
 
@@ -178,17 +198,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     /**
-     * Logout user (clear security context)
+     * Logout user from current session only (other devices remain logged in)
      */
     @Override
     public LogoutResponseDto logout(HttpServletResponse response, HttpServletRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails userDetails) {
-            log.info("User logged out: {}", userDetails.getEmail());
-
-            // Remove user session
-            sessionManagementService.removeUserSession(userDetails.getId());
+            log.info("User logout initiated: {}", userDetails.getEmail());
 
             // Extract and blacklist access token from cookie
             String accessToken = cookieUtil.getAccessTokenFromCookie(request);
@@ -200,16 +217,28 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                     if (jti != null && expiration != null) {
                         // Blacklist the access token
                         tokenBlacklistService.blacklistToken(jti, expiration.getTime());
-                        log.info("Access token blacklisted for user: {}", userDetails.getEmail());
+
+                        // Remove only this specific session (not all sessions)
+                        sessionManagementService.removeUserSessionByToken(userDetails.getId(), jti);
+
+                        int remainingSessions = sessionManagementService.getActiveSessionCount(userDetails.getId());
+                        log.info("Access token blacklisted and session removed for user: {} (Remaining sessions: {})",
+                                userDetails.getEmail(), remainingSessions);
                     } else {
                         log.warn("Could not extract JTI or expiration from access token during logout");
+                        // Fallback: remove all sessions if token parsing fails
+                        sessionManagementService.removeUserSession(userDetails.getId());
                     }
 
                 } catch (Exception e) {
                     log.warn("Failed to blacklist access token during logout: {}", e.getMessage());
+                    // Fallback: remove all sessions if token processing fails
+                    sessionManagementService.removeUserSession(userDetails.getId());
                 }
             } else {
                 log.debug("No access token found in cookie during logout");
+                // Fallback: remove all sessions
+                sessionManagementService.removeUserSession(userDetails.getId());
             }
         }
 
