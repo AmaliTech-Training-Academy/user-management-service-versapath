@@ -44,10 +44,11 @@ public class AuthenticationController {
     })
     public ResponseEntity<ApiResponseDto<LoginResponseDto>> login(
             @Valid @RequestBody LoginRequestDto loginRequest,
-            HttpServletResponse response) {
+            HttpServletResponse response,
+            HttpServletRequest request) {
         log.info("Login request for email: {}", loginRequest.getEmail());
 
-        LoginResponseDto loginResponse = authenticationService.login(loginRequest, response);
+        LoginResponseDto loginResponse = authenticationService.login(loginRequest, response, request);
 
         return ResponseEntity.ok(
                 ApiResponseDto.success(loginResponse, "Login successful")
@@ -73,7 +74,7 @@ public class AuthenticationController {
         RefreshTokenResponseDto refreshResponse = authenticationService.refreshToken(request, response);
 
         return ResponseEntity.ok(
-                ApiResponseDto.success(refreshResponse, "Token refreshed successfully")
+                ApiResponseDto.success(refreshResponse)
         );
     }
 

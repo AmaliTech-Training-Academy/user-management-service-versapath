@@ -15,7 +15,6 @@ import lombok.NoArgsConstructor;
 public class ResetPasswordRequest {
 
     @NotBlank(message = "New password is required")
-    @NotBlank(message = "Password is required")
     @Size(
             min = 8,
             max = 128,
