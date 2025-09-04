@@ -19,6 +19,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -216,5 +218,15 @@ public class GlobalExceptionHandler {
         log.error("Unexpected error occurred: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponseDto.error("An unexpected error occurred", "Internal server error"));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleResponseStatusException(ResponseStatusException ex) {
+        log.error("Response status exception: {}", ex.getMessage());
+
+        HttpStatus status = (HttpStatus) ex.getStatusCode();
+
+        return ResponseEntity.status(status)
+                .body(ApiResponseDto.error(ex.getReason(), "Request failed"));
     }
 }
