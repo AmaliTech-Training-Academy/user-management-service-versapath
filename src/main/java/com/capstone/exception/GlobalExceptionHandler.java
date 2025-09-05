@@ -19,6 +19,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -104,7 +106,7 @@ public class GlobalExceptionHandler {
 
     // Helper methods
     private String formatFieldError(FieldError fieldError) {
-        return String.format("%s: %s", fieldError.getField(), fieldError.getDefaultMessage());
+        return String.format("%s", fieldError.getDefaultMessage());
     }
 
     private String formatConstraintViolation(ConstraintViolation<?> violation) {
@@ -163,15 +165,15 @@ public class GlobalExceptionHandler {
                 .body(ApiResponseDto.error("Failed to send email notification", "Email service error"));
     }
 
+    @ExceptionHandler(EventPublishingException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleEventPublishingException(EventPublishingException ex) {
+        log.error("Event publishing failed: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponseDto.error("Failed to publish user event", "Event service error"));
+    }
+
     // Password Reset Exceptions
     // =========================
-
-    @ExceptionHandler(PasswordResetRateLimitExceededException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handlePasswordResetRateLimitException(PasswordResetRateLimitExceededException ex) {
-        log.warn("Password reset rate limit exceeded: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body(ApiResponseDto.error(ex.getMessage(), "Rate limit exceeded"));
-    }
 
     @ExceptionHandler(UserNotActiveForPasswordResetException.class)
     public ResponseEntity<ApiResponseDto<Void>> handleUserNotActiveForPasswordResetException(UserNotActiveForPasswordResetException ex) {
@@ -185,13 +187,6 @@ public class GlobalExceptionHandler {
         log.warn("Invalid password reset token: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponseDto.error(ex.getMessage(), "Invalid reset token"));
-    }
-
-    @ExceptionHandler(TokenAlreadyUsedException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleTokenAlreadyUsedException(TokenAlreadyUsedException ex) {
-        log.warn("Token already used: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponseDto.error(ex.getMessage(), "Token already used"));
     }
 
     // User Authentication
@@ -230,5 +225,15 @@ public class GlobalExceptionHandler {
         log.error("Unexpected error occurred: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponseDto.error("An unexpected error occurred", "Internal server error"));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleResponseStatusException(ResponseStatusException ex) {
+        log.error("Response status exception: {}", ex.getMessage());
+
+        HttpStatus status = (HttpStatus) ex.getStatusCode();
+
+        return ResponseEntity.status(status)
+                .body(ApiResponseDto.error(ex.getReason(), "Request failed"));
     }
 }

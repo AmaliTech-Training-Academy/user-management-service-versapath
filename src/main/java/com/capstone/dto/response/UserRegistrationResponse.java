@@ -12,8 +12,6 @@ import java.util.UUID;
 @Builder
 public class UserRegistrationResponse {
     private UUID userId;
-    private String email;
     private String registrationLink;
-    private String message;
     private String tokenExpiresAt;
 }

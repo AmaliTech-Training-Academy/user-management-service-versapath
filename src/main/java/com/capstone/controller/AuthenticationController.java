@@ -44,13 +44,11 @@ public class AuthenticationController {
     })
     public ResponseEntity<ApiResponseDto<LoginResponseDto>> login(
             @Valid @RequestBody LoginRequestDto loginRequest,
-            HttpServletRequest request,
-            HttpServletResponse response) {
+            HttpServletResponse response,
+            HttpServletRequest request) {
+        log.info("Login request for email: {}", loginRequest.getEmail());
 
-        String clientIp = getClientIp(request);
-        log.info("Login request from IP: {} for email: {}", clientIp, loginRequest.getEmail());
-
-        LoginResponseDto loginResponse = authenticationService.login(loginRequest, response);
+        LoginResponseDto loginResponse = authenticationService.login(loginRequest, response, request);
 
         return ResponseEntity.ok(
                 ApiResponseDto.success(loginResponse, "Login successful")
@@ -76,25 +74,27 @@ public class AuthenticationController {
         RefreshTokenResponseDto refreshResponse = authenticationService.refreshToken(request, response);
 
         return ResponseEntity.ok(
-                ApiResponseDto.success(refreshResponse, "Token refreshed successfully")
+                ApiResponseDto.success(refreshResponse)
         );
     }
 
     @PostMapping("/logout")
     @Operation(
             summary = "User Logout",
-            description = "Logout current user, clear session and remove refresh token cookie"
+            description = "Logout current user, blacklist access token, clear session and remove refresh token cookie"
     )
     @SecurityRequirement(name = "Bearer Authentication")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Logout successful"),
             @ApiResponse(responseCode = "401", description = "User not authenticated")
     })
-    public ResponseEntity<ApiResponseDto<LogoutResponseDto>> logout(HttpServletResponse response) {
+    public ResponseEntity<ApiResponseDto<LogoutResponseDto>> logout(
+            HttpServletResponse response,
+            HttpServletRequest request) {
 
         log.info("Logout request received");
 
-        LogoutResponseDto logoutResponse = authenticationService.logout(response);
+        LogoutResponseDto logoutResponse = authenticationService.logout(response, request);
 
         return ResponseEntity.ok(
                 ApiResponseDto.success(logoutResponse, "Logout successful")
@@ -111,9 +111,9 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "200", description = "User information retrieved successfully"),
             @ApiResponse(responseCode = "401", description = "User not authenticated")
     })
-    public ResponseEntity<ApiResponseDto<UserInfoDto>> getCurrentUser() {
+    public ResponseEntity<ApiResponseDto<UserProfileDto>> getCurrentUser() {
 
-            UserInfoDto response = authenticationService.getCurrentUser();
+            UserProfileDto response = authenticationService.getCurrentUser();
 
             return ResponseEntity.ok(
                     ApiResponseDto.success(response, "User information retrieved successfully")
@@ -132,16 +132,13 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "429", description = "Too many requests")
     })
     public ResponseEntity<ApiResponseDto<PasswordResetResponse>> forgotPassword(
-            @Valid @RequestBody ForgotPasswordRequest request,
-            HttpServletRequest httpRequest) {
-
-        String clientIp = getClientIp(httpRequest);
-        log.info("Forgot password request from IP: {} for email: {}", clientIp, request.getEmail());
+            @Valid @RequestBody ForgotPasswordRequest request) {
+        log.info("Forgot password request for email: {}", request.getEmail());
 
         PasswordResetResponse response = passwordResetService.processForgotPassword(request);
 
         return ResponseEntity.ok(
-                ApiResponseDto.success(response, response.getMessage())
+                ApiResponseDto.success(response)
         );
     }
 
@@ -152,32 +149,15 @@ public class AuthenticationController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Password reset successful"),
-            @ApiResponse(responseCode = "400", description = "Invalid input data or token"),
-            @ApiResponse(responseCode = "401", description = "Invalid or expired token")
+            @ApiResponse(responseCode = "400", description = "Invalid or expired token")
     })
     public ResponseEntity<ApiResponseDto<PasswordResetResponse>> resetPassword(
-            @RequestParam("reset") String token, @Valid @RequestBody ResetPasswordRequest request,
-            HttpServletRequest httpRequest) {
-
-        String clientIp = getClientIp(httpRequest);
-        log.info("Reset password request from IP: {}", clientIp);
+            @RequestParam("reset") String token, @Valid @RequestBody ResetPasswordRequest request) {
 
         PasswordResetResponse response = passwordResetService.resetPassword(token, request);
 
         return ResponseEntity.ok(
-                ApiResponseDto.success(response, response.getMessage())
+                ApiResponseDto.success(response)
         );
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isEmpty()) {
-            return xRealIp;
-        }
-        return request.getRemoteAddr();
     }
 }

@@ -5,6 +5,7 @@ import com.capstone.dto.request.UserRegistrationRequest;
 import com.capstone.dto.response.*;
 import com.capstone.exception.*;
 import com.capstone.mapper.RegistrationMapper;
+import com.capstone.messaging.RabbitMQProducer;
 import com.capstone.model.EStatus;
 import com.capstone.model.Role;
 import com.capstone.model.User;
@@ -15,6 +16,7 @@ import com.capstone.service.RegistrationService;
 import com.capstone.util.RegistrationTokenUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.common.event.producer.ProduceUserEvent;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     private final RegistrationTokenUtil tokenUtil;
     private final RegistrationMapper registrationMapper;
     private final PasswordEncoder passwordEncoder;
+    private final RabbitMQProducer rabbitMQProducer;
 
     @Value("${REGISTRATION_EMAIL_FE_URI}")
     private String registrationEmailFeUri;
@@ -64,8 +67,7 @@ public class RegistrationServiceImpl implements RegistrationService {
             //Generate registration token
             String token = tokenUtil.generateRegistrationToken(
                     savedUser.getId(),
-                    savedUser.getEmail(),
-                    role.getId()
+                    savedUser.getEmail()
             );
 
             //Build registration link
@@ -88,7 +90,6 @@ public class RegistrationServiceImpl implements RegistrationService {
             // Build response
             UserRegistrationResponse response = registrationMapper.toRegistrationResponse(savedUser);
             response.setRegistrationLink(registrationLink);
-            response.setMessage("Invitation sent successfully");
 
             // Format expiration time
             Instant expirationTime = Instant.now().plusMillis(86400000); // 24 hours
@@ -131,12 +132,12 @@ public class RegistrationServiceImpl implements RegistrationService {
                     .orElseThrow(() -> new UserNotFoundException("User not found"));
 
             if (user.getStatus() != EStatus.PENDING) {
-                throw new UserNotPendingException("User registration is not in pending status");
+                throw new UserNotPendingException("Invalid Request");
             }
 
             // Verify email matches
             if (!user.getEmail().equals(tokenData.getEmail())) {
-                throw new InvalidRegistrationTokenException("Token email does not match user email");
+                throw new InvalidRegistrationTokenException("Invalid Token");
             }
 
             // Check if username is already taken
@@ -153,11 +154,24 @@ public class RegistrationServiceImpl implements RegistrationService {
             log.info("Successfully completed registration for user: {} with username: {}",
                     updatedUser.getId(), updatedUser.getUsername());
 
+            try {
+                ProduceUserEvent userEvent = ProduceUserEvent.builder()
+                        .versapathUserId(updatedUser.getId())
+                        .email(updatedUser.getEmail())
+                        .firstName(updatedUser.getFirstName())
+                        .lastName(updatedUser.getLastName())
+                        .username(updatedUser.getUsername())
+                        .build();
+
+                rabbitMQProducer.sendUserEvent(userEvent);
+                log.info("Successfully published user event for Moodle integration: {}", updatedUser.getUsername());
+            } catch (Exception eventException) {
+                log.error("Failed to publish user event for user: {}", updatedUser.getUsername(), eventException);
+                throw new EventPublishingException("Failed to publish user event for Moodle integration", eventException);
+            }
+
             // Build response
             PasswordSetupResponse response = registrationMapper.toPasswordSetupResponse(updatedUser);
-            response.setSuccess(true);
-            response.setMessage("Registration completed successfully");
-
             return ApiResponseDto.success(response, "Registration completed successfully. You can now log in with your credentials.");
 
         } catch (InvalidRegistrationTokenException | PasswordMismatchException |
@@ -176,13 +190,12 @@ public class RegistrationServiceImpl implements RegistrationService {
         try {
             // Find user by email with PENDING status
             User user = userRepository.findByEmailAndStatus(email, EStatus.PENDING)
-                    .orElseThrow(() -> new UserNotFoundException("No pending registration found for email: " + email));
+                    .orElseThrow(() -> new UserNotFoundException("Invalid Request"));
 
             // Generate new registration token
             String token = tokenUtil.generateRegistrationToken(
                     user.getId(),
-                    user.getEmail(),
-                    user.getRole().getId()
+                    user.getEmail()
             );
 
             // Build registration link

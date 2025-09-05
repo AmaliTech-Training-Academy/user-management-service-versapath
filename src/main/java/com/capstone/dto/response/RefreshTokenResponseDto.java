@@ -14,12 +14,6 @@ import lombok.NoArgsConstructor;
 public class RefreshTokenResponseDto {
 
     @Schema(description = "New JWT access token")
-    private String accessToken;
-
-    @Schema(description = "Token type", example = "Bearer")
-    private String tokenType;
-
-    @Schema(description = "Access token expiration time in seconds from now")
-    private long expiresIn;
+    private String message;
 
 }

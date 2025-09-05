@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -33,4 +35,10 @@ public class UserInfoDto {
 
     @Schema(description = "User's account status")
     private String status;
+
+    @Schema(description = "Account creation date")
+    private LocalDateTime createdAt;
+
+    @Schema(description = "Last account update date")
+    private LocalDateTime updatedAt;
 }

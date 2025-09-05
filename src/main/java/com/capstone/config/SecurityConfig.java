@@ -2,7 +2,6 @@ package com.capstone.config;
 
 import com.capstone.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -13,23 +12,11 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-
-    @Value("${APP_BASE_URL:http://localhost:8090}")
-    private String baseUrl;
-
-    @Value("${REACT_DEV_SERVER:http://localhost:3000}")
-    private String reactDevServer;
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -38,10 +25,6 @@ public class SecurityConfig {
         http
                 // Disable CSRF for REST API
                 .csrf(AbstractHttpConfigurer::disable)
-
-                // Enable CORS
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
 
                 // Disable form login and HTTP basic auth
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -77,11 +60,14 @@ public class SecurityConfig {
                         // Admin only endpoints
                         .requestMatchers("/api/v1/register/invite-user","/api/v1/register/resend-invitation").hasRole("ADMIN")
                         .requestMatchers("/api/v1/roles/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/users/**").hasRole("ADMIN")
 
                         // Authenticated endpoints
                         .requestMatchers(
                                 "/api/v1/auth/logout",
-                                "/api/v1/auth/me"
+                                "/api/v1/auth/me",
+                                "/api/v1/users/profile",
+                                "/api/v1/users/password"
                         ).authenticated()
 
                         // All other requests require authentication
@@ -117,43 +103,5 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-
-        // Allow specific origins (configure based on your frontend URLs)
-        configuration.setAllowedOriginPatterns(List.of(
-                reactDevServer,    // React dev server
-                baseUrl   // Local development
-        ));
-
-        configuration.setAllowedMethods(Arrays.asList(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
-        ));
-
-        configuration.setAllowedHeaders(Arrays.asList(
-                "Authorization",
-                "Content-Type",
-                "X-Requested-With",
-                "Accept",
-                "Origin",
-                "Access-Control-Request-Method",
-                "Access-Control-Request-Headers"
-        ));
-
-        configuration.setExposedHeaders(Arrays.asList(
-                "Access-Control-Allow-Origin",
-                "Access-Control-Allow-Credentials",
-                "Authorization"
-        ));
-
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
     }
 }

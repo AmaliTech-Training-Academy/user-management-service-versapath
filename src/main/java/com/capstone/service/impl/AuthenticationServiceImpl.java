@@ -5,23 +5,30 @@ import com.capstone.model.User;
 import com.capstone.service.AuthenticationService;
 import com.capstone.repository.UserRepository;
 import com.capstone.security.CustomUserDetails;
+import com.capstone.service.SessionManagementService;
 import com.capstone.util.CookieUtil;
 import com.capstone.util.JwtAuthUtil;
 import com.capstone.dto.request.LoginRequestDto;
 import com.capstone.dto.response.LoginResponseDto;
 import com.capstone.dto.response.LogoutResponseDto;
 import com.capstone.dto.response.RefreshTokenResponseDto;
-import com.capstone.dto.response.UserInfoDto;
+import com.capstone.dto.response.UserProfileDto;
+import com.capstone.mapper.UserMapper;
+import com.capstone.service.TokenBlacklistService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.StringUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -36,12 +43,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final UserRepository userRepository;
     private final JwtAuthUtil jwtAuthUtil;
     private final CookieUtil cookieUtil;
+    private final UserMapper userMapper;
+    private final TokenBlacklistService tokenBlacklistService;
+    private final SessionManagementService sessionManagementService;
+
+    @Value("${APP_SESSION_MAX_CONCURRENT_SESSIONS:3}")
+    private int maxConcurrentSessions;
 
     /**
      * Authenticate user and generate JWT tokens
      */
     @Override
-    public LoginResponseDto login(LoginRequestDto loginRequest, HttpServletResponse response) {
+    public LoginResponseDto login(LoginRequestDto loginRequest, HttpServletResponse response, HttpServletRequest request) {
         log.info("Login attempt for email: {}", loginRequest.getEmail());
 
             // Authenticate user credentials
@@ -55,6 +68,31 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
             log.info("User authenticated successfully: {}", userDetails.getUsername());
 
+            // Get client information
+            String ipAddress = getClientIpAddress(request);
+            String userAgent = request.getHeader("User-Agent");
+
+            // Check if user has too many sessions from DIFFERENT devices
+            int currentSessions = sessionManagementService.getActiveSessionCount(userDetails.getId());
+
+            // Only block if user has max sessions AND this is a different device
+            if (currentSessions >= maxConcurrentSessions) {
+                // Check if any existing session is from same device
+                boolean hasSameDeviceSession = sessionManagementService.getUserSessions(userDetails.getId())
+                        .stream()
+                        .anyMatch(session -> session.getIpAddress().equals(ipAddress) &&
+                                java.util.Objects.equals(session.getUserAgent(), userAgent));
+
+                if (!hasSameDeviceSession) {
+                    log.warn("User {} attempted login from new device but has {} active sessions from different devices",
+                            userDetails.getEmail(), currentSessions);
+                    throw new ResponseStatusException(
+                            HttpStatus.CONFLICT,
+                            String.format("Maximum device limit reached (%d devices). Login from new device blocked.", maxConcurrentSessions)
+                    );
+                }
+            }
+
             // Generate tokens
             String accessToken = jwtAuthUtil.generateAccessToken(
                     userDetails.getId(),
@@ -67,29 +105,38 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                     userDetails.getEmail()
             );
 
-            // Set refresh token in HttpOnly cookie
+            // Extract token ID for session tracking
+            String tokenId = jwtAuthUtil.getJtiFromToken(accessToken);
+
+            // Create user session
+            sessionManagementService.createUserSession(
+                    userDetails.getId(),
+                    tokenId,
+                    ipAddress,
+                    userAgent
+            );
+
+            // Set both tokens in HttpOnly cookies
+            cookieUtil.addAccessTokenCookie(response, accessToken);
             cookieUtil.addRefreshTokenCookie(response, refreshToken);
 
-            // Build response
-            UserInfoDto userInfo = UserInfoDto.builder()
-                    .id(userDetails.getId().toString())
-                    .email(userDetails.getEmail())
-                    .username(userDetails.getUsername())
-                    .firstName(userDetails.getFirstName())
-                    .lastName(userDetails.getLastName())
-                    .role(userDetails.getRoleWithoutPrefix())
-                    .status(userDetails.getStatus().name())
-                    .build();
+            // Get User entity to get complete information including timestamps
+            User user = userRepository.findById(userDetails.getId())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
 
-            LoginResponseDto response1 = LoginResponseDto.builder()
-                    .userInfo(userInfo)
-                    .tokenType("Bearer")
-                    .accessToken(accessToken)
-                    .expiresIn(900000) // 15 minutes
-                    .build();
+            // Get current session count after login
+            int finalSessionCount = sessionManagementService.getActiveSessionCount(userDetails.getId());
 
-            log.info("Login successful for user: {}", userDetails.getEmail());
-            return response1;
+            LoginResponseDto loginResponse = LoginResponseDto.builder()
+                .userId(user.getId().toString())
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .role(user.getRole().getRole().name())
+                .build();
+
+        log.info("Login successful for user: {} (Active sessions: {}/{})",
+                userDetails.getEmail(), finalSessionCount, maxConcurrentSessions);
+        return loginResponse;
 
     }
 
@@ -123,6 +170,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 throw new RuntimeException("User account is not active");
             }
 
+            // Check if user still has active session
+            if (!sessionManagementService.hasActiveSession(user.getId())) {
+                log.warn("Token refresh failed: No active session for user: {}", user.getEmail());
+                throw new RuntimeException("No active session found");
+            }
+
             // Generate new access token
             String newAccessToken = jwtAuthUtil.generateAccessToken(
                     user.getId(),
@@ -130,30 +183,67 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                     user.getRole().getRole().name()
             );
 
-            RefreshTokenResponseDto refreshResponse = RefreshTokenResponseDto.builder()
-                    .accessToken(newAccessToken)
-                    .tokenType("Bearer")
-                    .expiresIn(900000) // 15 minutes
-                    .build();
+            // Update session activity
+            sessionManagementService.updateSessionActivity(user.getId());
 
+            // Set new access token in cookie (refresh token remains the same)
+            cookieUtil.addAccessTokenCookie(response, newAccessToken);
+
+            RefreshTokenResponseDto refreshResponse = RefreshTokenResponseDto.builder()
+                    .message("Access token refreshed successfully")
+                    .build();
             log.info("Token refreshed successfully for user: {}", user.getEmail());
             return refreshResponse;
 
     }
 
     /**
-     * Logout user (clear security context)
+     * Logout user from current session only (other devices remain logged in)
      */
     @Override
-    public LogoutResponseDto logout(HttpServletResponse response) {
+    public LogoutResponseDto logout(HttpServletResponse response, HttpServletRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails userDetails) {
-            log.info("User logged out: {}", userDetails.getEmail());
+            log.info("User logout initiated: {}", userDetails.getEmail());
+
+            // Extract and blacklist access token from cookie
+            String accessToken = cookieUtil.getAccessTokenFromCookie(request);
+            if (accessToken != null) {
+                try {
+                    String jti = jwtAuthUtil.getJtiFromToken(accessToken);
+                    java.util.Date expiration = jwtAuthUtil.getExpirationDateFromToken(accessToken);
+
+                    if (jti != null && expiration != null) {
+                        // Blacklist the access token
+                        tokenBlacklistService.blacklistToken(jti, expiration.getTime());
+
+                        // Remove only this specific session (not all sessions)
+                        sessionManagementService.removeUserSessionByToken(userDetails.getId(), jti);
+
+                        int remainingSessions = sessionManagementService.getActiveSessionCount(userDetails.getId());
+                        log.info("Access token blacklisted and session removed for user: {} (Remaining sessions: {})",
+                                userDetails.getEmail(), remainingSessions);
+                    } else {
+                        log.warn("Could not extract JTI or expiration from access token during logout");
+                        // Fallback: remove all sessions if token parsing fails
+                        sessionManagementService.removeUserSession(userDetails.getId());
+                    }
+
+                } catch (Exception e) {
+                    log.warn("Failed to blacklist access token during logout: {}", e.getMessage());
+                    // Fallback: remove all sessions if token processing fails
+                    sessionManagementService.removeUserSession(userDetails.getId());
+                }
+            } else {
+                log.debug("No access token found in cookie during logout");
+                // Fallback: remove all sessions
+                sessionManagementService.removeUserSession(userDetails.getId());
+            }
         }
 
-        // Clear refresh token cookie
-        cookieUtil.clearRefreshTokenCookie(response);
+        // Clear all authentication cookies
+        cookieUtil.clearAllAuthCookies(response);
 
         // Clear security context
         SecurityContextHolder.clearContext();
@@ -163,26 +253,38 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .logoutTime(Instant.now())
                 .build();
     }
-
     /**
      * Get current authenticated user information
      */
     @Override
-    public UserInfoDto getCurrentUser() {
+    public UserProfileDto getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
             throw new RuntimeException("No authenticated user found");
         }
 
-        return UserInfoDto.builder()
-                .id(userDetails.getId().toString())
-                .email(userDetails.getEmail())
-                .username(userDetails.getUsername())
-                .firstName(userDetails.getFirstName())
-                .lastName(userDetails.getLastName())
-                .role(userDetails.getRoleWithoutPrefix())
-                .status(userDetails.getStatus().name())
-                .build();
+        // Get User entity for complete information
+        User user = userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return userMapper.toUserProfileDto(user);
+    }
+
+    /**
+     * Extract client IP address from request
+     */
+    private String getClientIpAddress(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (StringUtils.hasText(xForwardedFor)) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+
+        String xRealIp = request.getHeader("X-Real-IP");
+        if (StringUtils.hasText(xRealIp)) {
+            return xRealIp;
+        }
+
+        return request.getRemoteAddr();
     }
 }

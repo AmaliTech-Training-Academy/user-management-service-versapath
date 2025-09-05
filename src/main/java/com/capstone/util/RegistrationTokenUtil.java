@@ -28,13 +28,12 @@ public class RegistrationTokenUtil {
     /**
      * Generate a registration token containing user ID, email, and role ID
      */
-    public String generateRegistrationToken(UUID userId, String email, UUID roleId) {
+    public String generateRegistrationToken(UUID userId, String email) {
         Instant now = Instant.now();
 
         return Jwts.builder()
                 .subject(userId.toString())
                 .claim("email", email)
-                .claim("roleId", roleId.toString())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusMillis(expirationsMs)))
                 .signWith(getSigningKey())
@@ -62,7 +61,6 @@ public class RegistrationTokenUtil {
             return RegistrationTokenData.builder()
                     .userId(UUID.fromString(claims.getSubject()))
                     .email(claims.get("email", String.class))
-                    .roleId(UUID.fromString(claims.get("roleId", String.class)))
                     .issuedAt(claims.getIssuedAt().toInstant())
                     .expiresAt(expiration)
                     .build();
@@ -88,7 +86,6 @@ public class RegistrationTokenUtil {
     public static class RegistrationTokenData {
         private UUID userId;
         private String email;
-        private UUID roleId;
         private Instant issuedAt;
         private Instant expiresAt;
     }

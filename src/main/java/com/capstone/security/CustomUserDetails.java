@@ -81,4 +81,8 @@ public class CustomUserDetails implements UserDetails{
     public String getRoleWithoutPrefix() {
         return roleName;
     }
+
+    public String getActualUsername() {
+        return username;
+    }
 }

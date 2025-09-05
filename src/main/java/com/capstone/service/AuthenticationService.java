@@ -4,13 +4,13 @@ import com.capstone.dto.request.LoginRequestDto;
 import com.capstone.dto.response.LoginResponseDto;
 import com.capstone.dto.response.LogoutResponseDto;
 import com.capstone.dto.response.RefreshTokenResponseDto;
-import com.capstone.dto.response.UserInfoDto;
+import com.capstone.dto.response.UserProfileDto;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 public interface AuthenticationService {
-    LoginResponseDto login(LoginRequestDto loginRequest, HttpServletResponse response);
+    LoginResponseDto login(LoginRequestDto loginRequest, HttpServletResponse response, HttpServletRequest request);
     RefreshTokenResponseDto refreshToken(HttpServletRequest request, HttpServletResponse response);
-    LogoutResponseDto logout(HttpServletResponse response);
-    UserInfoDto getCurrentUser();
+    LogoutResponseDto logout(HttpServletResponse response, HttpServletRequest request);
+    UserProfileDto getCurrentUser();
 }
