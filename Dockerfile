@@ -22,7 +22,18 @@ RUN chown -R usermanagement:usermanagement /application
 USER usermanagement
 # Expose the port that the application will run on
 EXPOSE 8090
-# Set JVM options for optimal container performance
-ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
+# Set JVM options for optimal container performance and memory management
+ENV JAVA_OPTS="-XX:+UseContainerSupport \
+-XX:MaxRAMPercentage=70.0 \
+-XX:InitialRAMPercentage=30.0 \
+-XX:+UseG1GC \
+-XX:MaxGCPauseMillis=200 \
+-XX:+UnlockExperimentalVMOptions \
+-XX:G1HeapRegionSize=16m \
+-XX:+UseStringDeduplication \
+-XX:+OptimizeStringConcat \
+-Djava.security.egd=file:/dev/./urandom \
+-Dspring.jpa.show-sql=false \
+-Dlogging.level.org.hibernate.SQL=WARN"
 # Run the application
 CMD ["sh", "-c", "java $JAVA_OPTS -jar target/*.jar"]
