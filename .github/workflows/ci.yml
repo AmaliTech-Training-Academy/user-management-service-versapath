@@ -31,6 +31,13 @@ jobs:
           key: maven-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             maven-${{ runner.os }}-
+      - name: "Debug: show maven settings (passwords redacted)"
+        run: |
+          if [ -f ~/.m2/settings.xml ]; then
+            sed -n '1,200p' ~/.m2/settings.xml | sed -e 's#<password>.*</password>#<password>***REDACTED***</password>#g'
+          else
+            echo "~/.m2/settings.xml not found"
+          fi
 
       - name: Verify external package access
         run: mvn -B -DskipTests dependency:resolve
