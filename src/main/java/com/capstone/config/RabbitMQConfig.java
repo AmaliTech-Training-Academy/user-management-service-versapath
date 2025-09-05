@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    public static final String USER_EVENT_QUEUE = "versapath.user.events";
+    public static final String USER_EVENT_QUEUE = "versapath.user.created";
 
     @Bean
     public Jackson2JsonMessageConverter jackson2JsonMessageConverter() {
