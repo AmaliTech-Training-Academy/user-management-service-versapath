@@ -5,6 +5,7 @@ import com.capstone.dto.request.UserRegistrationRequest;
 import com.capstone.dto.response.*;
 import com.capstone.exception.*;
 import com.capstone.mapper.RegistrationMapper;
+import com.capstone.messaging.RabbitMQProducer;
 import com.capstone.model.EStatus;
 import com.capstone.model.Role;
 import com.capstone.model.User;
@@ -15,6 +16,7 @@ import com.capstone.service.RegistrationService;
 import com.capstone.util.RegistrationTokenUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.common.event.producer.ProduceUserEvent;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     private final RegistrationTokenUtil tokenUtil;
     private final RegistrationMapper registrationMapper;
     private final PasswordEncoder passwordEncoder;
+    private final RabbitMQProducer rabbitMQProducer;
 
     @Value("${REGISTRATION_EMAIL_FE_URI}")
     private String registrationEmailFeUri;
@@ -150,6 +153,22 @@ public class RegistrationServiceImpl implements RegistrationService {
             User updatedUser = userRepository.save(user);
             log.info("Successfully completed registration for user: {} with username: {}",
                     updatedUser.getId(), updatedUser.getUsername());
+
+            try {
+                ProduceUserEvent userEvent = ProduceUserEvent.builder()
+                        .versapathUserId(updatedUser.getId())
+                        .email(updatedUser.getEmail())
+                        .firstName(updatedUser.getFirstName())
+                        .lastName(updatedUser.getLastName())
+                        .username(updatedUser.getUsername())
+                        .build();
+
+                rabbitMQProducer.sendUserEvent(userEvent);
+                log.info("Successfully published user event for Moodle integration: {}", updatedUser.getUsername());
+            } catch (Exception eventException) {
+                log.error("Failed to publish user event for user: {}", updatedUser.getUsername(), eventException);
+                throw new EventPublishingException("Failed to publish user event for Moodle integration", eventException);
+            }
 
             // Build response
             PasswordSetupResponse response = registrationMapper.toPasswordSetupResponse(updatedUser);
