@@ -18,6 +18,10 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
+          cache: maven
+          server-id: github             # must match <id> in your pom.xml repositories
+          server-username: GITHUB_ACTOR
+          server-password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache Maven packages
         uses: actions/cache@v4
