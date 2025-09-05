@@ -3,3 +3,11 @@ spring:
     name: ${SPRING_APPLICATION_NAME}
   config:
       import: optional:configserver:${CONFIG_SERVER_URL}
+  rabbitmq:
+    host: ${RABBIT_HOSTNAME}
+    port: ${RABBIT_PORT}
+    username: ${RABBIT_USERNAME}
+    password: ${RABBIT_PASSWORD}
+    virtual-host: ${RABBIT_VHOST}
+    ssl:
+      enabled: true
