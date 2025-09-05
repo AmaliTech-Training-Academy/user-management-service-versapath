@@ -13,14 +13,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Set up JDK 21 and configure Maven auth for external packages
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
+          cache: maven
+          # server-id must match <id> of the <repository> entry in pom.xml
           server-id: github
-          server-username: GITHUB_ACTOR
-          server-password: GITHUB_TOKEN
+          server-username: ${{ secrets.PACKAGES_USER }}
+          server-password: ${{ secrets.PACKAGES_TOKEN }}
 
       - name: Cache Maven packages
         uses: actions/cache@v4
@@ -30,14 +32,13 @@ jobs:
           restore-keys: |
             maven-${{ runner.os }}-
 
+      - name: Verify external package access
+        run: mvn -B -DskipTests dependency:resolve
+
       - name: Build with Maven
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: mvn -B clean install
 
       - name: Run tests
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: mvn test
 
       - name: Upload test results
