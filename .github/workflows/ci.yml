@@ -13,16 +13,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21 and configure Maven auth for external packages
+      - name: Set up JDK 21 and configure Maven auth for package registry
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
           cache: maven
-          # server-id must match <id> of the <repository> entry in pom.xml
+          # server-id must match the <id> of the <repository> entry in pom.xml
           server-id: github
-          server-username: ${{ secrets.PACKAGES_USER }}
-          server-password: ${{ secrets.PACKAGES_TOKEN }}
+          # Prefer an explicit PACKAGES_TOKEN / PACKAGES_USER (PAT) when provided
+          # Fall back to the runner-provided token (github.token) and actor when the package
+          # is hosted in the same organization/repository and GITHUB_TOKEN is sufficient.
+          server-username: ${{ secrets.PACKAGES_USER || github.actor }}
+          server-password: ${{ secrets.PACKAGES_TOKEN || github.token }}
 
       - name: Cache Maven packages
         uses: actions/cache@v4
