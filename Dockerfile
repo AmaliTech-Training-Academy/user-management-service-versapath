@@ -4,33 +4,8 @@ FROM openjdk:21-jdk-slim
 # Set the working directory inside the container
 WORKDIR /application
 
-# Copy the Maven wrapper and pom.xml
-COPY .mvn/ .mvn/
-COPY mvnw .
-COPY pom.xml .
-COPY settings.xml .
-
-# Make the Maven wrapper executable
-RUN chmod +x mvnw
-
-# Download dependencies securely using settings.xml
-RUN --mount=type=secret,id=GH_USER,target=/run/secrets/GH_USER \
-    --mount=type=secret,id=GH_TOKEN,target=/run/secrets/GH_TOKEN \
-    ./mvnw dependency:go-offline -B -s settings.xml
-
-# Copy the source code
-COPY src/ ./src/
-
-# Build the application securely using settings.xml
-RUN --mount=type=secret,id=GH_USER,target=/run/secrets/GH_USER \
-    --mount=type=secret,id=GH_TOKEN,target=/run/secrets/GH_TOKEN \
-    ./mvnw clean package -DskipTests -s settings.xml
-
-# Create a non-root user
-RUN groupadd -r usermanagement && useradd -r -g usermanagement usermanagement
-
-# Change ownership of the application directory
-RUN chown -R usermanagement:usermanagement /application
+# Copy the Jar file
+COPY service.jar app.jar
 
 # Switch to non-root user
 USER usermanagement
@@ -42,4 +17,4 @@ EXPOSE 8090
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
 
 # Run the application
-CMD ["sh", "-c", "java $JAVA_OPTS -jar target/*.jar"]
+CMD ["java", "-jar", "app.jar"]
