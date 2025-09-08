@@ -21,6 +21,9 @@ public class CookieUtil {
     @Value("${APP_SECURITY_SECURE_COOKIES:true}")
     private boolean secureCookies;
 
+    @Value("${APP_SECURITY_COOKIE_SAMESITE:None}")
+    private String cookieSameSite;
+
     @Value("${APP_SECURITY_COOKIE_REFRESH_TOKEN_PATH:/api/v1/auth}")
     private String refreshTokenCookiePath;
 
@@ -35,7 +38,7 @@ public class CookieUtil {
         ResponseCookie cookie = ResponseCookie.from(ACCESS_TOKEN_COOKIE_NAME, accessToken)
                 .httpOnly(true)
                 .secure(secureCookies)
-                .sameSite("Strict")
+                .sameSite(cookieSameSite)
                 .maxAge(accessTokenExpiry / 1000)
                 .path(accessTokenCookiePath)
                 .build();
@@ -73,7 +76,7 @@ public class CookieUtil {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, refreshToken)
                 .httpOnly(true)
                 .secure(secureCookies)
-                .sameSite("Strict")
+                .sameSite(cookieSameSite)
                 .maxAge(refreshTokenExpiry)
                 .path(refreshTokenCookiePath)
                 .build();
@@ -104,6 +107,18 @@ public class CookieUtil {
 
         response.addHeader("Set-Cookie", cookie.toString());
         log.debug("Refresh token cookie cleared");
+    }
+
+    // Add HTTP Response Headers Methods
+    public void addTokensToHeaders(HttpServletResponse response, String accessToken, String refreshToken) {
+        response.addHeader("Authorization", "Bearer " + accessToken);
+        response.addHeader("X-Refresh-Token", refreshToken);
+        log.debug("Tokens added to HTTP response headers");
+    }
+
+    public void addAccessTokenToHeader(HttpServletResponse response, String accessToken) {
+        response.addHeader("Authorization", "Bearer " + accessToken);
+        log.debug("Access token added to Authorization header");
     }
 
     // Utility method to clear all auth cookies at once

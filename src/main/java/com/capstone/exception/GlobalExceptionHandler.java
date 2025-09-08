@@ -165,6 +165,13 @@ public class GlobalExceptionHandler {
                 .body(ApiResponseDto.error("Failed to send email notification", "Email service error"));
     }
 
+    @ExceptionHandler(EventPublishingException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleEventPublishingException(EventPublishingException ex) {
+        log.error("Event publishing failed: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponseDto.error("Failed to publish user event", "Event service error"));
+    }
+
     // Password Reset Exceptions
     // =========================
 

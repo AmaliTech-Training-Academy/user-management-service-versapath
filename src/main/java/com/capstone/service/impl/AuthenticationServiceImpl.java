@@ -119,6 +119,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             // Set both tokens in HttpOnly cookies
             cookieUtil.addAccessTokenCookie(response, accessToken);
             cookieUtil.addRefreshTokenCookie(response, refreshToken);
+            // Add tokens to response headers
+            cookieUtil.addTokensToHeaders(response, accessToken, refreshToken);
 
             // Get User entity to get complete information including timestamps
             User user = userRepository.findById(userDetails.getId())
@@ -188,6 +190,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
             // Set new access token in cookie (refresh token remains the same)
             cookieUtil.addAccessTokenCookie(response, newAccessToken);
+            // Add access token to response header
+            cookieUtil.addAccessTokenToHeader(response, newAccessToken);
 
             RefreshTokenResponseDto refreshResponse = RefreshTokenResponseDto.builder()
                     .message("Access token refreshed successfully")

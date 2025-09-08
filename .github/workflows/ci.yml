@@ -10,8 +10,8 @@ jobs:
   java-checks:
     runs-on: ubuntu-latest
     env:
-      GH_USER: ${{secrets.COMMON_EVENTS_GH_USER}}
-      GH_TOKEN: ${{secrets.COMMON_EVENTS_GH_TOKEN}}
+      GH_USER: ${{ secrets.COMMON_EVENT_DEP_GH_USER }}
+      GH_TOKEN: ${{ secrets.COMMON_EVENT_DEP_GH_TOKEN }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -23,11 +23,8 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Download Common events settings file
-        run: |
+      - run: |
           curl -o settings.xml https://raw.githubusercontent.com/AmaliTech-Training-Academy/config-repository-versapath/refs/heads/dev/settings.xml
-
-      - run: cat settings.xml
 
       - name: Cache Maven packages
         uses: actions/cache@v4
@@ -38,7 +35,8 @@ jobs:
             maven-${{ runner.os }}-
 
       - name: Verify dependencies
-        run: mvn -s settings.xml -B -DskipTests dependency:resolve
+        run: |
+          mvn -s settings.xml -B -DskipTests dependency:resolve
 
       - name: Build with Maven
         run: mvn -s settings.xml -B clean install
