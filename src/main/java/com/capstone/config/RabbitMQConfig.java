@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMQConfig {
 
     public static final String USER_EVENT_QUEUE = "versapath.user.created";
+    public static final String UPDATE_USER_QUEUE = "versapath.user.update";
 
     @Bean
     public Jackson2JsonMessageConverter jackson2JsonMessageConverter() {
@@ -28,6 +29,11 @@ public class RabbitMQConfig {
     @Bean
     public Queue userEventQueue() {
         return new Queue(USER_EVENT_QUEUE, true);
+    }
+
+    @Bean
+    public Queue updateUserEventQueue() {
+        return new Queue("UPDATE_USER_QUEUE", true);
     }
 
 }
