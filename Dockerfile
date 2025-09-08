@@ -6,7 +6,6 @@ WORKDIR /application
 
 # Copy the Jar file
 COPY target/*-SNAPSHOT.jar app.jar
-
 # Switch to non-root user
 USER usermanagement
 

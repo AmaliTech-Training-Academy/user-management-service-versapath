@@ -39,7 +39,7 @@ jobs:
   
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
+        
       - run: |
           curl -o settings.xml https://raw.githubusercontent.com/AmaliTech-Training-Academy/config-repository-versapath/refs/heads/dev/settings.xml
       
