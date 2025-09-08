@@ -6,6 +6,7 @@ import com.capstone.dto.response.*;
 import com.capstone.exception.*;
 import com.capstone.mapper.RegistrationMapper;
 import com.capstone.messaging.RabbitMQProducer;
+import com.capstone.model.ERole;
 import com.capstone.model.EStatus;
 import com.capstone.model.Role;
 import com.capstone.model.User;
@@ -16,7 +17,7 @@ import com.capstone.service.RegistrationService;
 import com.capstone.util.RegistrationTokenUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.common.event.producer.ProduceUserEvent;
+import org.common.event.ProduceUserEvent;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -155,20 +156,25 @@ public class RegistrationServiceImpl implements RegistrationService {
             log.info("Successfully completed registration for user: {} with username: {}",
                     updatedUser.getId(), updatedUser.getUsername());
 
-            try {
-                ProduceUserEvent userEvent = ProduceUserEvent.builder()
-                        .versapathUserId(updatedUser.getId())
-                        .email(updatedUser.getEmail())
-                        .firstName(updatedUser.getFirstName())
-                        .lastName(updatedUser.getLastName())
-                        .username(updatedUser.getUsername())
-                        .build();
+            if (updatedUser.getRole().getRole() == ERole.LEARNER) {
+                try {
+                    ProduceUserEvent userEvent = ProduceUserEvent.builder()
+                            .versapathUserId(updatedUser.getId())
+                            .email(updatedUser.getEmail())
+                            .firstName(updatedUser.getFirstName())
+                            .lastName(updatedUser.getLastName())
+                            .username(updatedUser.getUsername())
+                            .build();
 
-                rabbitMQProducer.sendUserEvent(userEvent);
-                log.info("Successfully published user event for Moodle integration: {}", updatedUser.getUsername());
-            } catch (Exception eventException) {
-                log.error("Failed to publish user event for user: {}", updatedUser.getUsername(), eventException);
-                throw new EventPublishingException("Failed to publish user event for Moodle integration", eventException);
+                    rabbitMQProducer.sendUserEvent(userEvent);
+                    log.info("Successfully published user event for Moodle integration: {} (LEARNER role)", updatedUser.getUsername());
+                } catch (Exception eventException) {
+                    log.error("Failed to publish user event for LEARNER user: {}", updatedUser.getUsername(), eventException);
+                    throw new EventPublishingException("Failed to publish user event for Moodle integration", eventException);
+                }
+            } else {
+                log.info("Skipping Moodle integration event for user: {} (Role: {})",
+                        updatedUser.getUsername(), updatedUser.getRole().getRole());
             }
 
             // Build response
