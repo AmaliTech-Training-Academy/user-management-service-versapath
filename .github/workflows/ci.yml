@@ -23,23 +23,8 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Create settings.xml with env variable
-        run: |
-          cat > settings.xml <<EOF
-          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
-                    https://maven.apache.org/xsd/settings-1.0.0.xsd">
-              <servers>
-                  <server>
-                      <id>github</id>
-                      <username>$GH_USER</username>
-                      <password>$GH_TOKEN</password>
-                  </server>
-              </servers>
-          </settings>
-          EOF
-
+      - run: |
+          curl -o settings.xml https://raw.githubusercontent.com/AmaliTech-Training-Academy/config-repository-versapath/refs/heads/dev/settings.xml
       - run: cat settings.xml
 
       - name: Cache Maven packages
