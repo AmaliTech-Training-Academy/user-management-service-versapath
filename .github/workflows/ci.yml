@@ -25,7 +25,7 @@ jobs:
 
       - name: Download Common events settings file
         run: |
-          curl -o settings.xml https://github.com/AmaliTech-Training-Academy/config-repository-versapath/refs/heads/dev/settings.xml
+          curl -o settings.xml https://raw.githubusercontent.com/AmaliTech-Training-Academy/config-repository-versapath/refs/heads/dev/settings.xml
 
       - run: cat settings.xml
 
