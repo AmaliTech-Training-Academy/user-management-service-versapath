@@ -16,7 +16,7 @@ import com.capstone.service.RegistrationService;
 import com.capstone.util.RegistrationTokenUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.common.event.producer.ProduceUserEvent;
+//import org.common.event.producer.ProduceUserEvent;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
