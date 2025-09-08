@@ -6,14 +6,16 @@ WORKDIR /application
 COPY .mvn/ .mvn/
 COPY mvnw .
 COPY pom.xml .
+# Copy settings.xml
+COPY settings.xml .
 # Make the Maven wrapper executable
 RUN chmod +x mvnw
 # Download dependencies (this layer will be cached if pom.xml doesn't change)
-RUN ./mvnw dependency:go-offline -B
+RUN ./mvnw dependency:go-offline -B -s settings.xml
 # Copy the source code
 COPY src/ ./src/
 # Build the application
-RUN ./mvnw clean package -DskipTests
+RUN ./mvnw clean package -DskipTests -s settings.xml
 # Create a non-root user
 RUN groupadd -r usermanagement && useradd -r -g usermanagement usermanagement
 # Change ownership of the application directory
