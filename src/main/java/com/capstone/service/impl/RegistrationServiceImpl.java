@@ -154,21 +154,21 @@ public class RegistrationServiceImpl implements RegistrationService {
             log.info("Successfully completed registration for user: {} with username: {}",
                     updatedUser.getId(), updatedUser.getUsername());
 
-            try {
-                ProduceUserEvent userEvent = ProduceUserEvent.builder()
-                        .versapathUserId(updatedUser.getId())
-                        .email(updatedUser.getEmail())
-                        .firstName(updatedUser.getFirstName())
-                        .lastName(updatedUser.getLastName())
-                        .username(updatedUser.getUsername())
-                        .build();
-
-                rabbitMQProducer.sendUserEvent(userEvent);
-                log.info("Successfully published user event for Moodle integration: {}", updatedUser.getUsername());
-            } catch (Exception eventException) {
-                log.error("Failed to publish user event for user: {}", updatedUser.getUsername(), eventException);
-                throw new EventPublishingException("Failed to publish user event for Moodle integration", eventException);
-            }
+//            try {
+//                ProduceUserEvent userEvent = ProduceUserEvent.builder()
+//                        .versapathUserId(updatedUser.getId())
+//                        .email(updatedUser.getEmail())
+//                        .firstName(updatedUser.getFirstName())
+//                        .lastName(updatedUser.getLastName())
+//                        .username(updatedUser.getUsername())
+//                        .build();
+//
+//                rabbitMQProducer.sendUserEvent(userEvent);
+//                log.info("Successfully published user event for Moodle integration: {}", updatedUser.getUsername());
+//            } catch (Exception eventException) {
+//                log.error("Failed to publish user event for user: {}", updatedUser.getUsername(), eventException);
+//                throw new EventPublishingException("Failed to publish user event for Moodle integration", eventException);
+//            }
 
             // Build response
             PasswordSetupResponse response = registrationMapper.toPasswordSetupResponse(updatedUser);
