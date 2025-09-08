@@ -5,8 +5,7 @@ FROM openjdk:21-jdk-slim
 WORKDIR /application
 
 # Copy the Jar file
-COPY service.jar app.jar
-
+COPY target/*-SNAPSHOT.jar app.jar
 # Switch to non-root user
 USER usermanagement
 
