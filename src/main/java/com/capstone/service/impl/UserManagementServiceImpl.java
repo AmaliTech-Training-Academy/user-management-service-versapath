@@ -97,6 +97,19 @@ public class UserManagementServiceImpl implements UserManagementService {
         log.info("Password updated successfully for user: {}", currentUser.getEmail());
     }
 
+    @Override
+    public void updateMoodleUserId(UUID versapathUserId, Long moodleUserId) {
+        log.info("Updating moodleUserId for versapathUserId: {} with moodleUserId: {}", versapathUserId, moodleUserId);
+
+        User user = userRepository.findById(versapathUserId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + versapathUserId));
+
+        user.setMoodleUserId(moodleUserId);
+        userRepository.save(user);
+
+        log.info("Successfully updated moodleUserId for user: {} ({})", user.getUsername(), user.getEmail());
+    }
+
     private User getCurrentAuthenticatedUser() {
         CustomUserDetails userDetails = (CustomUserDetails) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();

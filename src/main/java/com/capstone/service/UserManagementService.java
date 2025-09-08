@@ -13,6 +13,7 @@ import java.util.UUID;
 public interface UserManagementService {
     UserProfileDto updateUserProfile(ProfileUpdateRequest request);
     void updateUserPassword(PasswordUpdateRequest request);
+    void updateMoodleUserId(UUID versapathUserId, Long moodleUserId);
     
     // Admin user management methods
     PaginatedResponseDto<UserInfoDto> getAllUsers(int page, int size, String sortBy, String sortDirection);
