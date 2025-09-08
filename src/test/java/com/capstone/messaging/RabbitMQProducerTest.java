@@ -1,6 +1,6 @@
 package com.capstone.messaging;
 
-//import org.common.event.producer.ProduceUserEvent;
+import org.common.event.producer.ProduceUserEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -17,23 +17,23 @@ class RabbitMQProducerTest {
     @Mock
     private RabbitTemplate rabbitTemplate;
 
-//    @Test
-//    void shouldSendUserEventToCorrectQueue() {
-//        // Given
-//        RabbitMQProducer producer = new RabbitMQProducer(rabbitTemplate);
-//
-//        ProduceUserEvent userEvent = ProduceUserEvent.builder()
-//                .versapathUserId(UUID.randomUUID())
-//                .email("test@example.com")
-//                .firstName("John")
-//                .lastName("Doe")
-//                .username("johndoe")
-//                .build();
-//
-//        // When
-//        producer.sendUserEvent(userEvent);
-//
-//        // Then
-//        verify(rabbitTemplate).convertAndSend(USER_EVENT_QUEUE, userEvent);
-//    }
+    @Test
+    void shouldSendUserEventToCorrectQueue() {
+        // Given
+        RabbitMQProducer producer = new RabbitMQProducer(rabbitTemplate);
+
+        ProduceUserEvent userEvent = ProduceUserEvent.builder()
+                .versapathUserId(UUID.randomUUID())
+                .email("test@example.com")
+                .firstName("John")
+                .lastName("Doe")
+                .username("johndoe")
+                .build();
+
+        // When
+        producer.sendUserEvent(userEvent);
+
+        // Then
+        verify(rabbitTemplate).convertAndSend(USER_EVENT_QUEUE, userEvent);
+    }
 }
