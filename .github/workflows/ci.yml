@@ -35,8 +35,8 @@ jobs:
               <servers>
                   <server>
                       <id>github</id>
-                      <username>${ env.COMMON_EVENTS_GH_USER }</username>
-                      <password>${ env.COMMON_EVENTS_GH_TOKEN }</password>
+                      <username>$COMMON_EVENTS_GH_USER</username>
+                      <password>$COMMON_EVENTS_GH_TOKEN</password>
                   </server>
               </servers>
           </settings>
