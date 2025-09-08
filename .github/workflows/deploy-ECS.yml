@@ -17,8 +17,8 @@ jobs:
       AWS_ECS_CLUSTER_NAME: versapath-cluster
       AWS_ECS_SERVICE_NAME: versapath-user-management-service
       AWS_DEFAULT_REGION: eu-west-1
-      GH_USER: ${{ secrets.COMMON_EVENT_DEP_GH_USER }}
-      GH_TOKEN: ${{ secrets.COMMON_EVENT_DEP_GH_TOKEN }}
+      COMMON_EVENT_DEP_GH_USER: ${{ secrets.COMMON_EVENT_DEP_GH_USER }}
+      COMMON_EVENT_DEP_GH_TOKEN: ${{ secrets.COMMON_EVENT_DEP_GH_TOKEN }}
 
     steps:
     - name: Checkout
