@@ -4,32 +4,24 @@ FROM openjdk:21-jdk-slim
 # Set the working directory inside the container
 WORKDIR /application
 
-# Define build arguments for authentication
-ARG GH_USER
-ARG GH_TOKEN
-
-# Pass the build arguments as environment variables
-ENV GH_USER=$GH_USER
-ENV GH_TOKEN=$GH_TOKEN
-
 # Copy the Maven wrapper and pom.xml
 COPY .mvn/ .mvn/
 COPY mvnw .
 COPY pom.xml .
-
-# Copy settings.xml
 COPY settings.xml .
 
 # Make the Maven wrapper executable
 RUN chmod +x mvnw
 
-# Download dependencies using settings.xml (this layer will be cached if pom.xml doesn't change)
-RUN ./mvnw dependency:go-offline -B -s settings.xml
+# Download dependencies securely using settings.xml
+RUN --mount=type=secret,id=GH_USER,target=/run/secrets/GH_USER \
+    --mount=type=secret,id=GH_TOKEN,target=/run/secrets/GH_TOKEN \
+    ./mvnw dependency:go-offline -B -s settings.xml
 
 # Copy the source code
 COPY src/ ./src/
 
-# Build the application using settings.xml
+# Build the application securely using settings.xml
 RUN ./mvnw clean package -DskipTests -s settings.xml
 
 # Create a non-root user
