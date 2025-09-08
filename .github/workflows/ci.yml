@@ -27,6 +27,8 @@ jobs:
         run: |
           curl -o settings.xml https://github.com/AmaliTech-Training-Academy/config-repository-versapath/refs/heads/dev/settings.xml
 
+      - run: cat settings.xml
+
       - name: Cache Maven packages
         uses: actions/cache@v4
         with:
@@ -36,10 +38,10 @@ jobs:
             maven-${{ runner.os }}-
 
       - name: Verify dependencies
-        run: mvn -B -DskipTests dependency:resolve -s settings.xml
+        run: mvn -s settings.xml -B -DskipTests dependency:resolve
 
       - name: Build with Maven
-        run: mvn -B clean install -s settings.xml
+        run: mvn -s settings.xml -B clean install
 
       - name: Run tests
         run: mvn -s settings.xml test
