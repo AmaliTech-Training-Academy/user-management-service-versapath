@@ -17,8 +17,6 @@ jobs:
       AWS_ECS_CLUSTER_NAME: versapath-cluster
       AWS_ECS_SERVICE_NAME: versapath-user-management-service
       AWS_DEFAULT_REGION: eu-west-1
-      COMMON_EVENT_DEP_GH_USER: ${{ secrets.COMMON_EVENT_DEP_GH_USER }}
-      COMMON_EVENT_DEP_GH_TOKEN: ${{ secrets.COMMON_EVENT_DEP_GH_TOKEN }}
 
     steps:
     - name: Checkout
@@ -43,9 +41,6 @@ jobs:
       uses: docker/setup-buildx-action@v3
     
     - name: Download settings.xml
-      env:
-        GH_USER: ${{ secrets.COMMON_EVENT_DEP_GH_USER }}
-        GH_TOKEN: ${{ secrets.COMMON_EVENT_DEP_GH_TOKEN }}
       run: |
         curl -o settings.xml https://raw.githubusercontent.com/AmaliTech-Training-Academy/config-repository-versapath/refs/heads/dev/settings.xml
 
@@ -54,9 +49,11 @@ jobs:
       env:
         REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         REPOSITORY: ${{ env.AWS_ECR_REPOSITORY_NAME }}
+        GH_USER: ${{ secrets.COMMON_EVENT_DEP_GH_USER }}
+        GH_TOKEN: ${{ secrets.COMMON_EVENT_DEP_GH_TOKEN }}
       run: |
         echo "Building Docker image..."
-        docker build --secret id=GH_USER,env=COMMON_EVENT_DEP_GH_USER --secret id=GH_TOKEN,env=COMMON_EVENT_DEP_GH_TOKEN -t $REGISTRY/$REPOSITORY:${{ env.IMAGE_TAG }} .
+        docker build --secret id=GH_USER,env=$GH_USER --secret id=GH_TOKEN,env=$GH_TOKEN -t $REGISTRY/$REPOSITORY:${{ env.IMAGE_TAG }} .
         docker tag $REGISTRY/$REPOSITORY:${{ env.IMAGE_TAG }} $REGISTRY/$REPOSITORY:latest
         echo "Pushing to ECR..."
         docker push $REGISTRY/$REPOSITORY:${{ env.IMAGE_TAG }}

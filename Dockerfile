@@ -22,7 +22,9 @@ RUN --mount=type=secret,id=GH_USER,target=/run/secrets/GH_USER \
 COPY src/ ./src/
 
 # Build the application securely using settings.xml
-RUN ./mvnw clean package -DskipTests -s settings.xml
+RUN --mount=type=secret,id=GH_USER,target=/run/secrets/GH_USER \
+    --mount=type=secret,id=GH_TOKEN,target=/run/secrets/GH_TOKEN \
+    ./mvnw clean package -DskipTests -s settings.xml
 
 # Create a non-root user
 RUN groupadd -r usermanagement && useradd -r -g usermanagement usermanagement
