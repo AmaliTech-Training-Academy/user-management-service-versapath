@@ -27,7 +27,7 @@ jobs:
 
       - name: Create settings.xml with env variable
         run: |
-          cat <<EOF > settings.xml
+          cat > settings.xml <<EOF
           <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                     xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
@@ -35,8 +35,8 @@ jobs:
               <servers>
                   <server>
                       <id>github</id>
-                      <username>$COMMON_EVENTS_GH_USER</username>
-                      <password>$COMMON_EVENTS_GH_TOKEN</password>
+                      <username>${{ secrets.COMMON_EVENTS_GH_USER }}</username>
+                      <password>${{ secrets.COMMON_EVENTS_GH_TOKEN }}</password>
                   </server>
               </servers>
           </settings>
