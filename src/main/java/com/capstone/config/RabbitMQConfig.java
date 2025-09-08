@@ -31,9 +31,4 @@ public class RabbitMQConfig {
         return new Queue(USER_EVENT_QUEUE, true);
     }
 
-    @Bean
-    public Queue updateUserEventQueue() {
-        return new Queue("UPDATE_USER_QUEUE", true);
-    }
-
 }
