@@ -10,8 +10,8 @@ jobs:
   java-checks:
     runs-on: ubuntu-latest
     env:
-      GH_USER: ${{secrets.COMMON_EVENTS_GH_USER}}
-      GH_TOKEN: ${{secrets.COMMON_EVENTS_GH_TOKEN}}
+      GITHUB_ACTOR: ${{ secrets.COMMON_EVENTS_GH_USER }}
+      GITHUB_TOKEN: ${{ secrets.COMMON_EVENTS_GH_TOKEN }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
