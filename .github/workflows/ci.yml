@@ -9,6 +9,9 @@ on:
 jobs:
   java-checks:
     runs-on: ubuntu-latest
+    env:
+      GH_USER: ${{secrets.COMMON_EVENTS_GH_USER}}
+      GH_TOKEN: ${{secrets.COMMON_EVENTS_GH_TOKEN}}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -20,6 +23,10 @@ jobs:
           java-version: '21'
           cache: maven
 
+      - name: Download Common events settings file
+        run: |
+          curl -o settings.xml https://github.com/AmaliTech-Training-Academy/config-repository-versapath/refs/heads/dev/settings.xml
+
       - name: Cache Maven packages
         uses: actions/cache@v4
         with:
@@ -29,13 +36,13 @@ jobs:
             maven-${{ runner.os }}-
 
       - name: Verify dependencies
-        run: mvn -B -DskipTests dependency:resolve
+        run: mvn -B -DskipTests dependency:resolve -s settings.xml
 
       - name: Build with Maven
-        run: mvn -B clean install
+        run: mvn -B clean install -s settings.xml
 
       - name: Run tests
-        run: mvn test
+        run: mvn -s settings.xml test
 
       - name: Upload test results
         if: always()
