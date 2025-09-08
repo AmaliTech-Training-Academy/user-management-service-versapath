@@ -15,8 +15,8 @@ jobs:
 
       - name: Set dynamic envs for configuring common_events dependency
         run: |
-          echo "GITHUB_ACTOR=${{ secrets.COMMON_EVENTS_GH_USER }}" >> $GITHUB_ENV
-          echo "GITHUB_TOKEN=${{ secrets.COMMON_EVENTS_GH_TOKEN }}" >> $GITHUB_ENV
+          echo "COMMON_EVENTS_GH_USER=${{ secrets.COMMON_EVENTS_GH_USER }}" >> $GITHUB_ENV
+          echo "COMMON_EVENTS_GH_TOKEN=${{ secrets.COMMON_EVENTS_GH_TOKEN }}" >> $GITHUB_ENV
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -25,9 +25,22 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Download Common events settings file
+      - name: Create settings.xml with env variable
         run: |
-          curl -o settings.xml https://raw.githubusercontent.com/AmaliTech-Training-Academy/config-repository-versapath/refs/heads/dev/settings.xml
+          cat <<EOF > settings.xml
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                    https://maven.apache.org/xsd/settings-1.0.0.xsd">
+              <servers>
+                  <server>
+                      <id>github</id>
+                      <username>${ env.COMMON_EVENTS_GH_USER }</username>
+                      <password>${ env.COMMON_EVENTS_GH_TOKEN }</password>
+                  </server>
+              </servers>
+          </settings>
+          EOF
 
       - run: cat settings.xml
 
