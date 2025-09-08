@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_USER: ${{ secrets.COMMON_EVENT_DEP_GH_USER }}
-      GH_TOKEN: ${{ secrets.COMMON_EVENT_DEP_GH_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.COMMON_EVENT_DEP_GH_TOKEN }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
