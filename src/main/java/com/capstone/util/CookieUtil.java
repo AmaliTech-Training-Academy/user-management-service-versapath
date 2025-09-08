@@ -106,6 +106,18 @@ public class CookieUtil {
         log.debug("Refresh token cookie cleared");
     }
 
+    // Add HTTP Response Headers Methods
+    public void addTokensToHeaders(HttpServletResponse response, String accessToken, String refreshToken) {
+        response.addHeader("Authorization", "Bearer " + accessToken);
+        response.addHeader("X-Refresh-Token", refreshToken);
+        log.debug("Tokens added to HTTP response headers");
+    }
+
+    public void addAccessTokenToHeader(HttpServletResponse response, String accessToken) {
+        response.addHeader("Authorization", "Bearer " + accessToken);
+        log.debug("Access token added to Authorization header");
+    }
+
     // Utility method to clear all auth cookies at once
     public void clearAllAuthCookies(HttpServletResponse response) {
         clearAccessTokenCookie(response);
