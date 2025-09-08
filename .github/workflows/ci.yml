@@ -9,12 +9,14 @@ on:
 jobs:
   java-checks:
     runs-on: ubuntu-latest
-    env:
-      GITHUB_ACTOR: ${{ secrets.COMMON_EVENTS_GH_USER }}
-      GITHUB_TOKEN: ${{ secrets.COMMON_EVENTS_GH_TOKEN }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set dynamic envs for configuring common_events dependency
+        run: |
+          echo "GITHUB_ACTOR=${{ secrets.COMMON_EVENTS_GH_USER }}" >> $GITHUB_ENV
+          echo "GITHUB_TOKEN=${{ secrets.COMMON_EVENTS_GH_TOKEN }}" >> $GITHUB_ENV
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -38,7 +40,8 @@ jobs:
             maven-${{ runner.os }}-
 
       - name: Verify dependencies
-        run: mvn -s settings.xml -B -DskipTests dependency:resolve
+        run: |
+          mvn -s settings.xml -B -DskipTests dependency:resolve
 
       - name: Build with Maven
         run: mvn -s settings.xml -B clean install
