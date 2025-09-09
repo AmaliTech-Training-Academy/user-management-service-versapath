@@ -9,7 +9,6 @@ COPY target/*-SNAPSHOT.jar app.jar
 
 # create a non-root user (Alpine / musl)
 RUN addgroup -S usermanagement && adduser -S -G usermanagement usermanagement
-
 # Switch to non-root user
 USER usermanagement
 

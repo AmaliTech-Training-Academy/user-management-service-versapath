@@ -1,6 +1,6 @@
 package com.capstone.messaging;
 
-import org.common.event.producer.ProduceUserEvent;
+import org.common.event.ProduceUserEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;

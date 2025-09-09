@@ -1,7 +1,7 @@
 package com.capstone.messaging;
 
 import lombok.RequiredArgsConstructor;
-import org.common.event.producer.ProduceUserEvent;
+import org.common.event.ProduceUserEvent;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
