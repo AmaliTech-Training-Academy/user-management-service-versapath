@@ -1,11 +1,12 @@
-# Use OpenJDK 21 base image
-FROM openjdk:21-jdk-slim
+# Use a lightweight base image with Java 21 JRE
+FROM bellsoft/liberica-runtime-container:jre-21-slim-musl
 
 # Set the working directory inside the container
 WORKDIR /application
 
 # Copy the Jar file
-COPY target/*-SNAPSHOT.jar app.jar
+COPY build/*-SNAPSHOT.jar app.jar
+
 # Switch to non-root user
 USER usermanagement
 
