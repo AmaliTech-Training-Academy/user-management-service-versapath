@@ -51,8 +51,8 @@ jobs:
           name: test-results
           path: target/surefire-reports/
 
-      - name: Upload jar
+      - name: Upload service-jar
         uses: actions/upload-artifact@v4
         with:
-          name: user-service-versapath-jar
+          name: versapath-user-service-jar
           path: target/*-SNAPSHOT.jar
