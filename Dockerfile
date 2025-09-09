@@ -5,7 +5,7 @@ FROM bellsoft/liberica-runtime-container:jre-21-slim-musl
 WORKDIR /application
 
 # Copy the Jar file
-COPY build/*-SNAPSHOT.jar app.jar
+COPY target/*-SNAPSHOT.jar app.jar
 
 # Switch to non-root user
 USER usermanagement
