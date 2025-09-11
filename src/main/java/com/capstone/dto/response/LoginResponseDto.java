@@ -19,6 +19,12 @@ public class LoginResponseDto {
     @Schema(description = "User's email address")
     private String email;
 
+    @Schema(description = "User's email address")
+    private String firstName;
+
+    @Schema(description = "User's email address")
+    private String lastName;
+
     @Schema(description = "User's username")
     private String username;
 
