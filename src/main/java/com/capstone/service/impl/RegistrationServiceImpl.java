@@ -5,6 +5,7 @@ import com.capstone.dto.request.UserRegistrationRequest;
 import com.capstone.dto.response.*;
 import com.capstone.exception.*;
 import com.capstone.mapper.RegistrationMapper;
+import com.capstone.messaging.KafkaProducer;
 import com.capstone.messaging.RabbitMQProducer;
 import com.capstone.model.ERole;
 import com.capstone.model.EStatus;
@@ -39,6 +40,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     private final RegistrationMapper registrationMapper;
     private final PasswordEncoder passwordEncoder;
     private final RabbitMQProducer rabbitMQProducer;
+    private final KafkaProducer kafkaProducer;
 
 
     @Value("${REGISTRATION_EMAIL_FE_URI}")
@@ -167,7 +169,8 @@ public class RegistrationServiceImpl implements RegistrationService {
                             .build();
 
                     rabbitMQProducer.sendUserEvent(userEvent);
-                    log.info("Successfully published user event for Moodle integration: {} (LEARNER role)", updatedUser.getUsername());
+                    kafkaProducer.produce(userEvent);
+                    log.info("Successfully published user event: {} (LEARNER role)", updatedUser.getUsername());
                 } catch (Exception eventException) {
                     log.error("Failed to publish user event for LEARNER user: {}", updatedUser.getUsername(), eventException);
                     throw new EventPublishingException("Failed to publish user event for Moodle integration", eventException);
