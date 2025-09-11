@@ -11,3 +11,18 @@ spring:
     virtual-host: ${RABBIT_VHOST}
     ssl:
       enabled: true
+
+  kafka:
+    bootstrap-servers: ${BOOTSTRAP_SERVER}
+    properties:
+      sasl.mechanism: PLAIN
+      sasl.jaas.config: >
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        username='${KAFKA_API_KEY}'
+        password='${KAFKA_API_SECRET}';
+      security.protocol: SASL_SSL
+      session.timeout.ms: 45000
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
