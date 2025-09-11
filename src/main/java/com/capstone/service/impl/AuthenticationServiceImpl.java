@@ -132,6 +132,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             LoginResponseDto loginResponse = LoginResponseDto.builder()
                 .userId(user.getId().toString())
                 .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
                 .username(user.getUsername())
                 .role(user.getRole().getRole().name())
                 .build();
