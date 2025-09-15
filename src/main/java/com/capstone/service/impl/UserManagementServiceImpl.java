@@ -121,18 +121,22 @@ public class UserManagementServiceImpl implements UserManagementService {
     // Admin user management methods
     @Override
     public PaginatedResponseDto<UserInfoDto> getAllUsers(int page, int size, String sortBy, String sortDirection) {
-        log.info("Admin request to get all users - page: {}, size: {}, sortBy: {}, sortDirection: {}", 
+        log.info("Admin request to get all users - page: {}, size: {}, sortBy: {}, sortDirection: {}",
                 page, size, sortBy, sortDirection);
 
+        // Get current authenticated admin user ID to exclude from results
+        User currentAdmin = getCurrentAuthenticatedUser();
+        UUID currentAdminId = currentAdmin.getId();
+
         // Create sort object
-        Sort sort = sortDirection.equalsIgnoreCase("desc") ? 
-            Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Sort sort = sortDirection.equalsIgnoreCase("desc") ?
+                Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
 
         // Create pageable
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        // Get users page
-        Page<User> usersPage = userRepository.findAll(pageable);
+        // Get users page excluding the current admin
+        Page<User> usersPage = userRepository.findAllByIdNot(currentAdminId, pageable);
 
         // Convert to UserInfoDto
         Page<UserInfoDto> userInfoPage = usersPage.map(userMapper::toUserInfoDto);
