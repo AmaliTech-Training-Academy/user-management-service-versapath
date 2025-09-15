@@ -15,6 +15,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import jakarta.validation.ConstraintViolation;
@@ -22,7 +23,6 @@ import jakarta.validation.ConstraintViolationException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestControllerAdvice
 @Slf4j
@@ -44,14 +44,21 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleValidationException(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiResponseDto<Void>> handleValidationException(MethodArgumentNotValidException ex,
+                                                                          WebRequest request) {
         log.error("Validation failed: {}", ex.getMessage());
+
+        String path = request.getDescription(false);
+
+        if (path.contains("/auth/login")) {
+            throw new BadCredentialsException("Invalid credentials");
+        }
 
         List<String> validationErrors = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
                 .map(this::formatFieldError)
-                .collect(Collectors.toList());
+                .toList();
 
         return ResponseEntity.badRequest()
                 .body(ApiResponseDto.error(validationErrors, "Validation failed"));
@@ -65,7 +72,7 @@ public class GlobalExceptionHandler {
                 .getFieldErrors()
                 .stream()
                 .map(this::formatFieldError)
-                .collect(Collectors.toList());
+                .toList();
 
         return ResponseEntity.badRequest()
                 .body(ApiResponseDto.error(validationErrors, "Request binding failed"));
@@ -78,7 +85,7 @@ public class GlobalExceptionHandler {
         List<String> validationErrors = ex.getConstraintViolations()
                 .stream()
                 .map(this::formatConstraintViolation)
-                .collect(Collectors.toList());
+                .toList();
 
         return ResponseEntity.badRequest()
                 .body(ApiResponseDto.error(validationErrors, "Constraint validation failed"));
