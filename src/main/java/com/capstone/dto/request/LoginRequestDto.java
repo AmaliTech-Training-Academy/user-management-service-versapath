@@ -31,7 +31,6 @@ public class LoginRequestDto {
     private String email;
 
     @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters long")
     @Schema(description = "User's password", example = "password123")
     private String password;
 }
