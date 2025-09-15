@@ -22,7 +22,6 @@ import jakarta.validation.ConstraintViolationException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestControllerAdvice
 @Slf4j
@@ -51,7 +50,7 @@ public class GlobalExceptionHandler {
                 .getFieldErrors()
                 .stream()
                 .map(this::formatFieldError)
-                .collect(Collectors.toList());
+                .toList();
 
         return ResponseEntity.badRequest()
                 .body(ApiResponseDto.error(validationErrors, "Validation failed"));
@@ -65,7 +64,7 @@ public class GlobalExceptionHandler {
                 .getFieldErrors()
                 .stream()
                 .map(this::formatFieldError)
-                .collect(Collectors.toList());
+                .toList();
 
         return ResponseEntity.badRequest()
                 .body(ApiResponseDto.error(validationErrors, "Request binding failed"));
@@ -78,7 +77,7 @@ public class GlobalExceptionHandler {
         List<String> validationErrors = ex.getConstraintViolations()
                 .stream()
                 .map(this::formatConstraintViolation)
-                .collect(Collectors.toList());
+                .toList();
 
         return ResponseEntity.badRequest()
                 .body(ApiResponseDto.error(validationErrors, "Constraint validation failed"));
