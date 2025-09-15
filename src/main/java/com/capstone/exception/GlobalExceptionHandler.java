@@ -15,7 +15,6 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import jakarta.validation.ConstraintViolation;
@@ -44,15 +43,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleValidationException(MethodArgumentNotValidException ex,
-                                                                          WebRequest request) {
+    public ResponseEntity<ApiResponseDto<Void>> handleValidationException(MethodArgumentNotValidException ex) {
         log.error("Validation failed: {}", ex.getMessage());
-
-        String path = request.getDescription(false);
-
-        if (path.contains("/auth/login")) {
-            throw new BadCredentialsException("Invalid credentials");
-        }
 
         List<String> validationErrors = ex.getBindingResult()
                 .getFieldErrors()
