@@ -30,7 +30,7 @@ public class LoginRequestDto {
     )
     private String email;
 
-    @NotBlank(message = "Password is required")
+
     @Schema(description = "User's password", example = "password123")
     private String password;
 }
