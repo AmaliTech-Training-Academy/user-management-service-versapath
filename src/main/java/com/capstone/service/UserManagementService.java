@@ -20,4 +20,6 @@ public interface UserManagementService {
     UserInfoDto getUserById(UUID userId);
     UserInfoDto updateUserRole(UUID userId, AdminUserRoleUpdateRequest request);
     UserInfoDto updateUserStatus(UUID userId, AdminUserStatusUpdateRequest request);
+    int getTotalUserCount();
+    int getTotalLearnerCount();
 }
