@@ -181,4 +181,45 @@ public class UserManagementController {
                 ApiResponseDto.success(updatedUser, "User status updated successfully")
         );
     }
+    @GetMapping("/count")
+    @Operation(
+            summary = "Get Total User Count",
+            description = "Retrieve total count of all users in the system (Admin only)"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User count retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated"),
+            @ApiResponse(responseCode = "403", description = "Access denied - Admin role required")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponseDto<Integer>> getTotalUserCount() {
+        log.info("Admin request to get total user count");
+
+        int userCount = userManagementService.getTotalUserCount();
+
+        return ResponseEntity.ok(
+                ApiResponseDto.success(userCount, "Total user count retrieved successfully")
+        );
+    }
+
+    @GetMapping("/learners/count")
+    @Operation(
+            summary = "Get Total Learner Count",
+            description = "Retrieve total count of all learners (users with USER role) in the system (Admin only)"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Learner count retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated"),
+            @ApiResponse(responseCode = "403", description = "Access denied - Admin role required")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponseDto<Integer>> getTotalLearnerCount() {
+        log.info("Admin request to get total learner count");
+
+        int learnerCount = userManagementService.getTotalLearnerCount();
+
+        return ResponseEntity.ok(
+                ApiResponseDto.success(learnerCount, "Total learner count retrieved successfully")
+        );
+    }
 }

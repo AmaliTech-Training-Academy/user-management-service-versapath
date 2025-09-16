@@ -1,5 +1,6 @@
 package com.capstone.repository;
 
+import com.capstone.model.ERole;
 import com.capstone.model.User;
 import com.capstone.model.EStatus;
 import jakarta.validation.constraints.NotBlank;
@@ -35,4 +36,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByUsername(String username);
 
     Page<User> findAllByIdNot(UUID id, Pageable pageable);
+
+    int countByRole_Role(ERole role);
 }

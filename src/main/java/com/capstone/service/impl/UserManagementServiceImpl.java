@@ -8,6 +8,7 @@ import com.capstone.dto.response.PaginatedResponseDto;
 import com.capstone.dto.response.UserInfoDto;
 import com.capstone.dto.response.UserProfileDto;
 import com.capstone.mapper.UserMapper;
+import com.capstone.service.AuditService;
 import com.capstone.util.PaginationUtil;
 import com.capstone.exception.PasswordMismatchException;
 import com.capstone.exception.UserNotFoundException;
@@ -46,6 +47,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
+    private final AuditService auditService;
 
     @Override
     public UserProfileDto updateUserProfile(ProfileUpdateRequest request) {
@@ -68,7 +70,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         currentUser.setUpdatedAt(LocalDateTime.now());
 
         User updatedUser = userRepository.save(currentUser);
-        log.info("Profile updated successfully for user: {}", updatedUser.getEmail());
+        auditService.logUserProfileUpdate(currentUser.getId().toString(), currentUser.getUsername());
 
         return userMapper.toUserProfileDto(updatedUser);
     }
@@ -94,7 +96,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         currentUser.setUpdatedAt(LocalDateTime.now());
 
         userRepository.save(currentUser);
-        log.info("Password updated successfully for user: {}", currentUser.getEmail());
+        auditService.logUserPasswordChange(currentUser.getId().toString(), currentUser.getUsername());
     }
 
     @Override
@@ -107,7 +109,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         user.setMoodleUserId(moodleUserId);
         userRepository.save(user);
 
-        log.info("Successfully updated moodleUserId for user: {} ({})", user.getUsername(), user.getEmail());
+        auditService.logSystemAction("MOODLE_ID_UPDATE", versapathUserId.toString(), "moodleUserId=" + moodleUserId);
     }
 
     private User getCurrentAuthenticatedUser() {
@@ -127,6 +129,16 @@ public class UserManagementServiceImpl implements UserManagementService {
         // Get current authenticated admin user ID to exclude from results
         User currentAdmin = getCurrentAuthenticatedUser();
         UUID currentAdminId = currentAdmin.getId();
+
+        // Audit log
+        String params = String.format("page=%d,size=%d,sortBy=%s,sortDirection=%s", page, size, sortBy, sortDirection);
+        auditService.logBulkUserAccess(
+                "VIEW_ALL_USERS",
+                params,
+                currentAdmin.getId().toString(),
+                currentAdmin.getUsername(),
+                currentAdmin.getRole().getRole().name()
+        );
 
         // Create sort object
         Sort sort = sortDirection.equalsIgnoreCase("desc") ?
@@ -151,6 +163,18 @@ public class UserManagementServiceImpl implements UserManagementService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
 
+        // Get current admin for audit
+        User currentAdmin = getCurrentAuthenticatedUser();
+
+        // Audit log
+        auditService.logUserDataAccess(
+                userId.toString(),
+                "VIEW_USER_DETAILS",
+                currentAdmin.getId().toString(),
+                currentAdmin.getUsername(),
+                currentAdmin.getRole().getRole().name()
+        );
+
         return userMapper.toUserInfoDto(user);
     }
 
@@ -160,6 +184,20 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+
+        // Get current admin for audit
+        User currentAdmin = getCurrentAuthenticatedUser();
+        String oldRole = user.getRole().getRole().name();
+
+        // Audit log before update
+        auditService.logUserRoleUpdate(
+                userId.toString(),
+                oldRole,
+                request.getRole(),
+                currentAdmin.getId().toString(),
+                currentAdmin.getUsername(),
+                currentAdmin.getRole().getRole().name()
+        );
 
         Role newRole = roleRepository.findByRole(ERole.valueOf(request.getRole()))
                 .orElseThrow(() -> new RuntimeException("Role not found: " + request.getRole()));
@@ -180,6 +218,20 @@ public class UserManagementServiceImpl implements UserManagementService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
 
+        // Get current admin for audit
+        User currentAdmin = getCurrentAuthenticatedUser();
+        String oldStatus = user.getStatus().name();
+
+        // Audit log before update
+        auditService.logUserStatusUpdate(
+                userId.toString(),
+                oldStatus,
+                request.getStatus(),
+                currentAdmin.getId().toString(),
+                currentAdmin.getUsername(),
+                currentAdmin.getRole().getRole().name()
+        );
+
         user.setStatus(EStatus.valueOf(request.getStatus()));
         user.setUpdatedAt(LocalDateTime.now());
 
@@ -187,5 +239,43 @@ public class UserManagementServiceImpl implements UserManagementService {
         log.info("User status updated successfully - userId: {}, newStatus: {}", userId, request.getStatus());
 
         return userMapper.toUserInfoDto(updatedUser);
+    }
+
+    @Override
+    public int getTotalUserCount() {
+        User currentAdmin = getCurrentAuthenticatedUser();
+        log.info("Admin request to get total user count");
+
+        // Audit log
+        auditService.logBulkUserAccess(
+                "GET_TOTAL_USER_COUNT",
+                "action=count_all_users",
+                currentAdmin.getId().toString(),
+                currentAdmin.getUsername(),
+                currentAdmin.getRole().getRole().name()
+        );
+
+        int totalCount = (int) userRepository.count();
+        log.info("Total user count: {}", totalCount);
+        return totalCount;
+    }
+
+    @Override
+    public int getTotalLearnerCount() {
+        User currentAdmin = getCurrentAuthenticatedUser();
+        log.info("Admin request to get total learner count");
+
+        // Audit log
+        auditService.logBulkUserAccess(
+                "GET_LEARNER_COUNT",
+                "action=count_learner_users",
+                currentAdmin.getId().toString(),
+                currentAdmin.getUsername(),
+                currentAdmin.getRole().getRole().name()
+        );
+
+        int learnerCount = userRepository.countByRole_Role(ERole.LEARNER);
+        log.info("Total learner count: {}", learnerCount);
+        return learnerCount;
     }
 }
