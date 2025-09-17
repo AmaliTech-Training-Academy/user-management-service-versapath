@@ -235,4 +235,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status)
                 .body(ApiResponseDto.error(ex.getReason(), "Request failed"));
     }
+
+    // File Upload Exception
+    // ======================
+
+    @ExceptionHandler(FileException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleFileException(FileException ex) {
+        log.error("File operation failed: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponseDto.error(ex.getMessage(), "File operation failed"));
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleMaxUploadSizeExceeded(
+            org.springframework.web.multipart.MaxUploadSizeExceededException ex) {
+        log.error("File size exceeds maximum allowed size: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponseDto.error("File size exceeds maximum allowed limit", "File too large"));
+    }
 }
