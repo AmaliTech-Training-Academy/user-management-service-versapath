@@ -22,6 +22,8 @@ public interface RegistrationMapper {
     @Mapping(target = "lastName", ignore = true)
     @Mapping(target = "username", ignore = true)
     @Mapping(target = "password", ignore = true)
+    @Mapping(target = "phoneNumber", ignore = true)
+    @Mapping(target = "profilePictureUrl", ignore = true)
     @Mapping(target = "role", ignore = true)
     @Mapping(target = "mentor", ignore = true)
     @Mapping(target = "learners", ignore = true)
@@ -46,6 +48,7 @@ public interface RegistrationMapper {
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "email", ignore = true)
+    @Mapping(target = "profilePictureUrl", ignore = true)
     @Mapping(target = "role", ignore = true)
     @Mapping(target = "mentor", ignore = true)
     @Mapping(target = "learners", ignore = true)
