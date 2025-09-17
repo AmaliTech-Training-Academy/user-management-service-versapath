@@ -57,18 +57,26 @@ public class SecurityConfig {
                         // Actuator endpoints (if using Spring Boot Actuator)
                         .requestMatchers("/actuator/health").permitAll()
 
-                        // Admin only endpoints
-                        .requestMatchers("/api/v1/register/invite-user","/api/v1/register/resend-invitation").hasRole("ADMIN")
-                        .requestMatchers("/api/v1/roles/**").hasRole("ADMIN")
-                        .requestMatchers("/api/v1/users/**").hasRole("ADMIN")
-
                         // Authenticated endpoints
                         .requestMatchers(
                                 "/api/v1/auth/logout",
                                 "/api/v1/auth/me",
                                 "/api/v1/users/profile",
-                                "/api/v1/users/password"
+                                "/api/v1/users/password",
+                                "/api/v1/users/profile-picture"
                         ).authenticated()
+
+                        // Admin only endpoints
+                        .requestMatchers("/api/v1/register/invite-user","/api/v1/register/resend-invitation").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/roles/**").hasRole("ADMIN")
+                        .requestMatchers(
+                                "/api/v1/users",
+                                "/api/v1/users/{userId}",
+                                "/api/v1/users/{userId}/role",
+                                "/api/v1/users/{userId}/status",
+                                "/api/v1/users/count",
+                                "/api/v1/users/learners/count"
+                        ).hasRole("ADMIN")
 
                         // All other requests require authentication
                         .anyRequest().authenticated()
