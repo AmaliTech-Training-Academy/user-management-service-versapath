@@ -9,6 +9,9 @@ import com.capstone.dto.response.UserInfoDto;
 import com.capstone.dto.response.UserProfileDto;
 import com.capstone.mapper.UserMapper;
 import com.capstone.service.AuditService;
+import com.capstone.service.AwsFileUploadService;
+import com.capstone.service.PreSignedUrlService;
+import com.capstone.util.FileHelper;
 import com.capstone.util.PaginationUtil;
 import com.capstone.exception.PasswordMismatchException;
 import com.capstone.exception.UserNotFoundException;
@@ -28,11 +31,14 @@ import com.capstone.service.UserManagementService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -48,11 +54,15 @@ public class UserManagementServiceImpl implements UserManagementService {
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
     private final AuditService auditService;
+    private final PreSignedUrlService preSignedUrlService;
+    private final FileHelper fileHelper;
+    private final AwsFileUploadService awsFileUploadService;
 
     @Override
-    public UserProfileDto updateUserProfile(ProfileUpdateRequest request) {
+    public UserProfileDto updateUserProfile(ProfileUpdateRequest request, MultipartFile profilePicture) {
         User currentUser = getCurrentAuthenticatedUser();
-        log.info("Updating profile for user: {}", currentUser.getEmail());
+        log.info("Updating profile for user: {} with picture: {}",
+                currentUser.getEmail(), profilePicture != null ? "yes" : "no");
 
         // Check if username is already taken by another user
         if (!currentUser.getUsername().equals(request.getUsername())) {
@@ -63,16 +73,40 @@ public class UserManagementServiceImpl implements UserManagementService {
             }
         }
 
-        // Update user profile
+        // Update user profile information
         currentUser.setFirstName(request.getFirstName());
         currentUser.setLastName(request.getLastName());
         currentUser.setUsername(request.getUsername());
+        currentUser.setPhoneNumber(request.getPhoneNumber());
         currentUser.setUpdatedAt(LocalDateTime.now());
+
+        // Handle profile picture upload if provided
+        if (profilePicture != null && !profilePicture.isEmpty()) {
+            try {
+                // Validate the uploaded file
+                fileHelper.validateImage(profilePicture);
+
+                // Upload file to S3 and get the key
+                String s3Key = awsFileUploadService.uploadFile(profilePicture);
+
+                // Update user's profile picture URL with the S3 key
+                currentUser.setProfilePictureUrl(s3Key);
+
+                log.info("Profile picture uploaded successfully for user: {}, S3 key: {}",
+                        currentUser.getEmail(), s3Key);
+
+            } catch (IOException e) {
+                log.error("Failed to upload profile picture for user: {}", currentUser.getEmail(), e);
+                throw new IllegalArgumentException("Failed to upload profile picture", e);
+            }
+        }
 
         User updatedUser = userRepository.save(currentUser);
         auditService.logUserProfileUpdate(currentUser.getId().toString(), currentUser.getUsername());
 
-        return userMapper.toUserProfileDto(updatedUser);
+        UserProfileDto userProfileDto = userMapper.toUserProfileDto(updatedUser);
+        fileHelper.generatePresignedUrl(updatedUser, userProfileDto, preSignedUrlService);
+        return userProfileDto;
     }
 
     @Override
@@ -112,10 +146,31 @@ public class UserManagementServiceImpl implements UserManagementService {
         auditService.logSystemAction("MOODLE_ID_UPDATE", versapathUserId.toString(), "moodleUserId=" + moodleUserId);
     }
 
+    @Override
+    public void deleteProfilePicture() {
+        User currentLoginUser = getCurrentAuthenticatedUser();
+        log.info("Deleting profile picture for user: {}", currentLoginUser.getEmail());
+
+        if (currentLoginUser.getProfilePictureUrl() == null) {
+            throw new IllegalArgumentException("No profile picture found to delete");
+        }
+
+        // Remove profile picture URL from user
+        currentLoginUser.setProfilePictureUrl(null);
+        currentLoginUser.setUpdatedAt(LocalDateTime.now());
+
+        userRepository.save(currentLoginUser);
+
+        log.info("Profile picture deleted successfully for user: {}", currentLoginUser.getEmail());
+    }
+
     private User getCurrentAuthenticatedUser() {
-        CustomUserDetails userDetails = (CustomUserDetails) SecurityContextHolder.getContext()
-                .getAuthentication().getPrincipal();
-        
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
+            throw new UserNotFoundException("No authenticated user found or invalid user type");
+        }
+
         return userRepository.findById(userDetails.getId())
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userDetails.getId()));
     }
@@ -242,7 +297,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
-    public int getTotalUserCount() {
+    public long getTotalUserCount() {
         User currentAdmin = getCurrentAuthenticatedUser();
         log.info("Admin request to get total user count");
 
@@ -255,13 +310,13 @@ public class UserManagementServiceImpl implements UserManagementService {
                 currentAdmin.getRole().getRole().name()
         );
 
-        int totalCount = (int) userRepository.count();
+        long totalCount = userRepository.count();
         log.info("Total user count: {}", totalCount);
         return totalCount;
     }
 
     @Override
-    public int getTotalLearnerCount() {
+    public long getTotalLearnerCount() {
         User currentAdmin = getCurrentAuthenticatedUser();
         log.info("Admin request to get total learner count");
 
@@ -274,7 +329,7 @@ public class UserManagementServiceImpl implements UserManagementService {
                 currentAdmin.getRole().getRole().name()
         );
 
-        int learnerCount = userRepository.countByRole_Role(ERole.LEARNER);
+        long learnerCount = userRepository.countByRole_Role(ERole.LEARNER);
         log.info("Total learner count: {}", learnerCount);
         return learnerCount;
     }

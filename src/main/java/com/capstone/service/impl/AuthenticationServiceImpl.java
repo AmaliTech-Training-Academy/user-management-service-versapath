@@ -5,6 +5,7 @@ import com.capstone.model.User;
 import com.capstone.service.AuthenticationService;
 import com.capstone.repository.UserRepository;
 import com.capstone.security.CustomUserDetails;
+import com.capstone.service.PreSignedUrlService;
 import com.capstone.service.SessionManagementService;
 import com.capstone.util.CookieUtil;
 import com.capstone.util.JwtAuthUtil;
@@ -46,6 +47,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final UserMapper userMapper;
     private final TokenBlacklistService tokenBlacklistService;
     private final SessionManagementService sessionManagementService;
+    private final PreSignedUrlService preSignedUrlService;
 
     @Value("${APP_SESSION_MAX_CONCURRENT_SESSIONS:3}")
     private int maxConcurrentSessions;
@@ -274,7 +276,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         User user = userRepository.findById(userDetails.getId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return userMapper.toUserProfileDto(user);
+        UserProfileDto userProfileDto = userMapper.toUserProfileDto(user);
+        if (user.getProfilePictureUrl() != null) {
+            try {
+                String presignedUrl = preSignedUrlService.generatePresignedUrl(user.getProfilePictureUrl());
+                userProfileDto.setProfilePictureUrl(presignedUrl);
+            } catch (Exception e) {
+                log.warn("Failed to generate pre-signed URL for user profile picture: {}", e.getMessage());
+                userProfileDto.setProfilePictureUrl(null);
+            }
+        }
+
+        return userProfileDto;
     }
 
     /**
