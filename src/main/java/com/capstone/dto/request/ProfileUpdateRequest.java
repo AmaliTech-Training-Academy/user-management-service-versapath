@@ -53,8 +53,8 @@ public class ProfileUpdateRequest {
             example = "+1234567890"
     )
     @Pattern(
-            regexp = "^\\+[1-9]\\d{1,14}$",
-            message = "Phone number must be in international format (E.164) starting with + and country code"
+            regexp = "^\\+[1-9]\\d{6,14}$",
+            message = "Phone number must be in international format (E.164) with 7-15 digits including country code"
     )
     private String phoneNumber;
 }
