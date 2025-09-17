@@ -17,10 +17,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
@@ -35,23 +37,27 @@ public class UserManagementController {
 
     private final UserManagementService userManagementService;
 
-    @PatchMapping("/profile")
+    @PatchMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
             summary = "Update User Profile",
-            description = "Update the profile information (name fields and username) of the currently authenticated user"
+            description = "Update profile information and optionally upload a new profile picture"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Profile updated successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data or username already exists"),
             @ApiResponse(responseCode = "401", description = "User not authenticated"),
             @ApiResponse(responseCode = "404", description = "User not found"),
-            @ApiResponse(responseCode = "409", description = "Username already exists")
+            @ApiResponse(responseCode = "409", description = "Username already exists"),
+            @ApiResponse(responseCode = "500", description = "File upload failed")
     })
     public ResponseEntity<ApiResponseDto<UserProfileDto>> updateUserProfile(
-            @Valid @RequestBody ProfileUpdateRequest request) {
-        log.info("Update user profile request received");
+            @RequestPart("profile") @Valid ProfileUpdateRequest request,
+            @RequestPart(value = "profilePicture", required = false) MultipartFile profilePicture) {
 
-        UserProfileDto updatedProfile = userManagementService.updateUserProfile(request);
+        log.info("Update user profile request received with picture: {}",
+                profilePicture != null ? "yes" : "no");
+
+        UserProfileDto updatedProfile = userManagementService.updateUserProfile(request, profilePicture);
 
         return ResponseEntity.ok(
                 ApiResponseDto.success(updatedProfile, "Profile updated successfully")
@@ -77,6 +83,26 @@ public class UserManagementController {
 
         return ResponseEntity.ok(
                 ApiResponseDto.success(null, "Password updated successfully")
+        );
+    }
+
+    @PatchMapping("/profile-picture")
+    @Operation(
+            summary = "Delete Profile Picture",
+            description = "Remove the current profile picture for the authenticated user"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Profile picture deleted successfully"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated"),
+            @ApiResponse(responseCode = "404", description = "No profile picture found")
+    })
+    public ResponseEntity<ApiResponseDto<Void>> deleteProfilePicture() {
+        log.info("Profile picture delete request received");
+
+        userManagementService.deleteProfilePicture();
+
+        return ResponseEntity.ok(
+                ApiResponseDto.success(null, "Profile picture deleted successfully")
         );
     }
 
@@ -192,10 +218,10 @@ public class UserManagementController {
             @ApiResponse(responseCode = "403", description = "Access denied - Admin role required")
     })
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponseDto<Integer>> getTotalUserCount() {
+    public ResponseEntity<ApiResponseDto<Long>> getTotalUserCount() {
         log.info("Admin request to get total user count");
 
-        int userCount = userManagementService.getTotalUserCount();
+        long userCount = userManagementService.getTotalUserCount();
 
         return ResponseEntity.ok(
                 ApiResponseDto.success(userCount, "Total user count retrieved successfully")
@@ -213,10 +239,10 @@ public class UserManagementController {
             @ApiResponse(responseCode = "403", description = "Access denied - Admin role required")
     })
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponseDto<Integer>> getTotalLearnerCount() {
+    public ResponseEntity<ApiResponseDto<Long>> getTotalLearnerCount() {
         log.info("Admin request to get total learner count");
 
-        int learnerCount = userManagementService.getTotalLearnerCount();
+        long learnerCount = userManagementService.getTotalLearnerCount();
 
         return ResponseEntity.ok(
                 ApiResponseDto.success(learnerCount, "Total learner count retrieved successfully")
