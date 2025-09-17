@@ -33,6 +33,12 @@ public class User {
 
     private String password;
 
+    @Column(name = "phone_number")
+    private String phoneNumber;
+
+    @Column(name = "profile_picture_url")
+    private String profilePictureUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
@@ -47,7 +53,7 @@ public class User {
     private List<User> learners;
 
     @Column(name = "moodle_user_id", unique = true)
-    private Long moodleUserId; // Fixed naming convention
+    private Long moodleUserId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
