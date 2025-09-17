@@ -30,6 +30,9 @@ public class UserInfoDto {
     @Schema(description = "User's last name")
     private String lastName;
 
+    @Schema(description = "User's phone number")
+    private String phoneNumber;
+
     @Schema(description = "User's role in the system")
     private String role;
 

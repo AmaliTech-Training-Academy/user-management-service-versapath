@@ -28,6 +28,12 @@ public class UserProfileDto {
     @Schema(description = "User's last name")
     private String lastName;
 
+    @Schema(description = "User's phone number")
+    private String phoneNumber;
+
+    @Schema(description = "User's profile picture URL (pre-signed S3 URL)")
+    private String profilePictureUrl;
+
     @Schema(description = "User's role in the system")
     private String role;
 }
