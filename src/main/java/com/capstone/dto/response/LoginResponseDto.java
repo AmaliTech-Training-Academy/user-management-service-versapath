@@ -19,14 +19,20 @@ public class LoginResponseDto {
     @Schema(description = "User's email address")
     private String email;
 
-    @Schema(description = "User's email address")
+    @Schema(description = "User's first name")
     private String firstName;
 
-    @Schema(description = "User's email address")
+    @Schema(description = "User's last name")
     private String lastName;
 
     @Schema(description = "User's username")
     private String username;
+
+    @Schema(description = "User's phone number")
+    private String phoneNumber;
+
+    @Schema(description = "User's profile picture URL (pre-signed S3 URL)")
+    private String profilePictureUrl;
 
     @Schema(description = "User's role name", example = "ADMIN")
     private String role;

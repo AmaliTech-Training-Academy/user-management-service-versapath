@@ -128,15 +128,27 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             User user = userRepository.findById(userDetails.getId())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // Get current session count after login
-            int finalSessionCount = sessionManagementService.getActiveSessionCount(userDetails.getId());
+        // Generate presigned URL for profile picture if it exists
+        String profilePictureUrl = null;
+        if (user.getProfilePictureUrl() != null) {
+            try {
+                profilePictureUrl = preSignedUrlService.generatePresignedUrl(user.getProfilePictureUrl());
+            } catch (Exception e) {
+                log.warn("Failed to generate pre-signed URL for user profile picture during login: {}", e.getMessage());
+            }
+        }
 
-            LoginResponseDto loginResponse = LoginResponseDto.builder()
+        // Get current session count after login
+        int finalSessionCount = sessionManagementService.getActiveSessionCount(userDetails.getId());
+
+        LoginResponseDto loginResponse = LoginResponseDto.builder()
                 .userId(user.getId().toString())
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .username(user.getUsername())
+                .phoneNumber(user.getPhoneNumber())
+                .profilePictureUrl(profilePictureUrl)
                 .role(user.getRole().getRole().name())
                 .build();
 
