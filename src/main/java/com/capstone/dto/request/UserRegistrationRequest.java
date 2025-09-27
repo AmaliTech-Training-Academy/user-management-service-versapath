@@ -2,6 +2,7 @@ package com.capstone.dto.request;
 
 import com.capstone.validation.ValidRoleId;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -11,6 +12,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -43,4 +45,9 @@ public class UserRegistrationRequest {
     @NotNull(message = "Role ID is required")
     @ValidRoleId(message = "Invalid role ID provided")
     private UUID roleId;
+
+    @Schema(description = "Specialization IDs for mentor role (ignored for other roles)",
+            example = "[\"550e8400-e29b-41d4-a716-446655440000\", \"550e8400-e29b-41d4-a716-446655440001\"]")
+    @Valid
+    private List<UUID> specializationIds;
 }
