@@ -7,17 +7,17 @@ import com.capstone.exception.*;
 import com.capstone.mapper.RegistrationMapper;
 import com.capstone.messaging.KafkaProducer;
 import com.capstone.messaging.RabbitMQProducer;
-import com.capstone.model.ERole;
-import com.capstone.model.EStatus;
-import com.capstone.model.Role;
-import com.capstone.model.User;
+import com.capstone.model.*;
+import com.capstone.repository.MentorSpecializationRepository;
 import com.capstone.repository.RoleRepository;
+import com.capstone.repository.SpecializationRepository;
 import com.capstone.repository.UserRepository;
 import com.capstone.service.EmailService;
 import com.capstone.service.RegistrationService;
 import com.capstone.util.RegistrationTokenUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.common.event.ProduceMentorEvent;
 import org.common.event.ProduceUserEvent;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -41,7 +43,8 @@ public class RegistrationServiceImpl implements RegistrationService {
     private final PasswordEncoder passwordEncoder;
     private final RabbitMQProducer rabbitMQProducer;
     private final KafkaProducer kafkaProducer;
-
+    private final MentorSpecializationRepository mentorSpecializationRepository;
+    private final SpecializationRepository specializationRepository;
 
     @Value("${REGISTRATION_EMAIL_FE_URI}")
     private String registrationEmailFeUri;
@@ -67,6 +70,12 @@ public class RegistrationServiceImpl implements RegistrationService {
 
             User savedUser = userRepository.save(user);
             log.info("Created pending user with ID: {} for email: {}", savedUser.getId(), savedUser.getEmail());
+
+            // Handle mentor specialization assignment
+            if (role.getRole() == ERole.MENTOR && request.getSpecializationIds() != null && !request.getSpecializationIds().isEmpty()) {
+                assignSpecializationsToMentor(savedUser, request.getSpecializationIds());
+                log.info("Assigned {} specializations to mentor: {}", request.getSpecializationIds().size(), savedUser.getEmail());
+            }
 
             //Generate registration token
             String token = tokenUtil.generateRegistrationToken(
@@ -175,8 +184,10 @@ public class RegistrationServiceImpl implements RegistrationService {
                     log.error("Failed to publish user event for LEARNER user: {}", updatedUser.getUsername(), eventException);
                     throw new EventPublishingException("Failed to publish user event for Moodle integration", eventException);
                 }
+            } else if (updatedUser.getRole().getRole() == ERole.MENTOR) {
+                publishMentorCreatedEvent(updatedUser);
             } else {
-                log.info("Skipping Moodle integration event for user: {} (Role: {})",
+                log.info("Skipping event publishing for user: {} (Role: {})",
                         updatedUser.getUsername(), updatedUser.getRole().getRole());
             }
 
@@ -232,6 +243,55 @@ public class RegistrationServiceImpl implements RegistrationService {
         } catch (Exception e) {
             log.error("Unexpected error during invitation resend for email: {}", email, e);
             throw new RuntimeException("Failed to resend invitation", e);
+        }
+    }
+
+    private void assignSpecializationsToMentor(User mentor, List<UUID> specializationIds) {
+        for (UUID specializationId : specializationIds) {
+            // Use findBySpecId instead of findById
+            Specialization specialization = specializationRepository.findBySpecId(specializationId)
+                    .orElseThrow(() -> new SpecializationNotFoundException("Specialization not found: " + specializationId));
+
+            // Check if relationship already exists using specId
+            if (!mentorSpecializationRepository.existsByUserIdAndSpecializationSpecId(mentor.getId(), specializationId)) {
+                // Create MentorSpecialization relationship
+                MentorSpecialization mentorSpec = MentorSpecialization.builder()
+                        .user(mentor)
+                        .specialization(specialization)
+                        .build();
+
+                mentorSpecializationRepository.save(mentorSpec);
+                log.debug("Assigned specialization '{}' to mentor '{}'", specialization.getSpecName(), mentor.getEmail());
+            }
+        }
+    }
+
+    private void publishMentorCreatedEvent(User mentor) {
+        try {
+            // Get mentor's specialization UUIDs
+            List<UUID> specializationIds = mentorSpecializationRepository.findByUserId(mentor.getId())
+                    .stream()
+                    .map(ms -> ms.getSpecialization().getSpecId())
+                    .toList();
+
+            // Create mentor event
+            ProduceMentorEvent mentorEvent = ProduceMentorEvent.builder()
+                    .versapathUserId(mentor.getId())
+                    .email(mentor.getEmail())
+                    .firstName(mentor.getFirstName())
+                    .lastName(mentor.getLastName())
+                    .username(mentor.getUsername())
+                    .specializations(specializationIds)
+                    .build();
+
+            // Publish mentor event
+            kafkaProducer.produceMentor(mentorEvent);
+            log.info("Successfully published mentor event: {} with {} specializations",
+                    mentor.getUsername(), specializationIds.size());
+
+        } catch (Exception eventException) {
+            log.error("Failed to publish mentor event for: {}", mentor.getUsername(), eventException);
+            throw new EventPublishingException("Failed to publish mentor event", eventException);
         }
     }
 
