@@ -18,7 +18,7 @@ public class Specialization {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
-    @Column(name = "spec_id", nullable = false, unique = true)
+    @Column(name = "spec_id", nullable = false, unique = true, updatable = false)
     private UUID specId;
     @Column(name = "spec_name", nullable = false, unique = true)
     private String specName;
