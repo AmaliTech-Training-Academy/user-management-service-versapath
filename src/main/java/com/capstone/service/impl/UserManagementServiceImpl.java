@@ -8,6 +8,8 @@ import com.capstone.dto.response.PaginatedResponseDto;
 import com.capstone.dto.response.UserInfoDto;
 import com.capstone.dto.response.UserProfileDto;
 import com.capstone.mapper.UserMapper;
+import com.capstone.messaging.KafkaProducer;
+import com.capstone.repository.MentorSpecializationRepository;
 import com.capstone.service.AuditService;
 import com.capstone.service.AwsFileUploadService;
 import com.capstone.service.PreSignedUrlService;
@@ -22,6 +24,8 @@ import com.capstone.model.Role;
 import com.capstone.model.User;
 import com.capstone.repository.RoleRepository;
 import com.capstone.repository.UserRepository;
+import org.common.event.ProduceMentorEvent;
+import org.common.event.ProduceUserEvent;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +44,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -57,6 +62,8 @@ public class UserManagementServiceImpl implements UserManagementService {
     private final PreSignedUrlService preSignedUrlService;
     private final FileHelper fileHelper;
     private final AwsFileUploadService awsFileUploadService;
+    private final KafkaProducer kafkaProducer;
+    private final MentorSpecializationRepository mentorSpecializationRepository;
 
     @Override
     public UserProfileDto updateUserProfile(ProfileUpdateRequest request, MultipartFile profilePicture) {
@@ -106,6 +113,53 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         UserProfileDto userProfileDto = userMapper.toUserProfileDto(updatedUser);
         fileHelper.generatePresignedUrl(updatedUser, userProfileDto, preSignedUrlService);
+
+        // Publish update events based on user role
+        if (updatedUser.getRole().getRole() == ERole.LEARNER) {
+            try {
+                ProduceUserEvent userUpdateEvent = ProduceUserEvent.builder()
+                        .versapathUserId(updatedUser.getId())
+                        .email(updatedUser.getEmail())
+                        .firstName(updatedUser.getFirstName())
+                        .lastName(updatedUser.getLastName())
+                        .username(updatedUser.getUsername())
+                        .build();
+
+                kafkaProducer.produceUserUpdate(userUpdateEvent);
+                log.info("Successfully published user update event: {} (LEARNER role)", updatedUser.getUsername());
+            } catch (Exception eventException) {
+                log.error("Failed to publish user update event for LEARNER user: {}", updatedUser.getUsername(), eventException);
+                // Don't throw exception for event publishing failures in profile updates
+            }
+        } else if (updatedUser.getRole().getRole() == ERole.MENTOR) {
+            try {
+                // Get mentor's specialization UUIDs (you'll need to inject MentorSpecializationRepository)
+                List<UUID> specializationIds = mentorSpecializationRepository.findByUserId(updatedUser.getId())
+                        .stream()
+                        .map(ms -> ms.getSpecialization().getSpecId())
+                        .toList();
+
+                ProduceMentorEvent mentorUpdateEvent = ProduceMentorEvent.builder()
+                        .versapathUserId(updatedUser.getId())
+                        .email(updatedUser.getEmail())
+                        .firstName(updatedUser.getFirstName())
+                        .lastName(updatedUser.getLastName())
+                        .username(updatedUser.getUsername())
+                        .specializations(specializationIds)
+                        .build();
+
+                kafkaProducer.produceMentorUpdate(mentorUpdateEvent);
+                log.info("Successfully published mentor update event: {} with {} specializations",
+                        updatedUser.getUsername(), specializationIds.size());
+            } catch (Exception eventException) {
+                log.error("Failed to publish mentor update event for: {}", updatedUser.getUsername(), eventException);
+                // Don't throw exception for event publishing failures in profile updates
+            }
+        } else {
+            log.info("Skipping update event publishing for user: {} (Role: {})",
+                    updatedUser.getUsername(), updatedUser.getRole().getRole());
+        }
+
         return userProfileDto;
     }
 
