@@ -253,4 +253,28 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponseDto.error("File size exceeds maximum allowed limit", "File too large"));
     }
+
+    // Specialization Exceptions
+    // =========================
+
+    @ExceptionHandler(SpecializationNotFoundException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleSpecializationNotFoundException(SpecializationNotFoundException ex) {
+        log.error("Specialization not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponseDto.error(ex.getMessage(), "Specialization not found"));
+    }
+
+    @ExceptionHandler(SpecializationAlreadyExistsException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleSpecializationAlreadyExistsException(SpecializationAlreadyExistsException ex) {
+        log.error("Specialization already exists: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponseDto.error(ex.getMessage(), "Specialization already exists"));
+    }
+
+    @ExceptionHandler(SpecializationProcessingException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleSpecializationProcessingException(SpecializationProcessingException ex) {
+        log.error("Specialization processing failed: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponseDto.error("Failed to process specialization request", "Processing error"));
+    }
 }
