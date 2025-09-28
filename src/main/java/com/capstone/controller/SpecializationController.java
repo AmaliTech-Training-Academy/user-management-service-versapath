@@ -18,6 +18,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/users/specializations")
 @RequiredArgsConstructor
@@ -61,12 +63,12 @@ public class SpecializationController {
             @ApiResponse(responseCode = "404", description = "Specialization not found"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<ApiResponseDto<SpecializationResponseDto>> getSpecializationByName(
+    public ResponseEntity<ApiResponseDto<List<SpecializationResponseDto>>> getSpecializationByName(
             @Parameter(description = "Specialization name to search for", required = true)
             @RequestParam String name) {
         log.info("Searching for specialization by name: '{}'", name);
 
-        SpecializationResponseDto result = specializationService.getSpecializationByName(name);
+        List<SpecializationResponseDto> result = specializationService.searchSpecializations(name);
 
         return ResponseEntity.ok(ApiResponseDto.success(result, "Specialization found successfully"));
     }
