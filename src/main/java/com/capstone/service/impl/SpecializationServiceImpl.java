@@ -18,6 +18,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -95,26 +97,6 @@ public class SpecializationServiceImpl implements SpecializationService {
 
     @Override
     @Transactional(readOnly = true)
-    public SpecializationResponseDto getSpecializationByName(String specName) {
-        log.debug("Retrieving specialization with name: {}", specName);
-
-        try {
-            Specialization specialization = specializationRepository.findBySpecName(specName)
-                    .orElseThrow(() -> new SpecializationNotFoundException(
-                            String.format("Specialization with name '%s' not found", specName)));
-
-            return specializationMapper.toResponseDto(specialization);
-        } catch (SpecializationNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed to retrieve specialization with name: {}", specName, e);
-            throw new SpecializationProcessingException(
-                    String.format("Failed to retrieve specialization with name '%s'", specName), e);
-        }
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public PaginatedResponseDto<SpecializationResponseDto> getAllSpecializations(Pageable pageable) {
         log.debug("Retrieving specializations with pagination: {}", pageable);
 
@@ -126,6 +108,34 @@ public class SpecializationServiceImpl implements SpecializationService {
         } catch (Exception e) {
             log.error("Failed to retrieve specializations with pagination", e);
             throw new SpecializationProcessingException("Failed to retrieve specializations", e);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SpecializationResponseDto> searchSpecializations(String searchTerm) {
+        log.debug("Searching specializations with term: '{}'", searchTerm);
+
+        try {
+            if (searchTerm == null || searchTerm.trim().isEmpty()) {
+                log.warn("Empty search term provided, returning empty list");
+                return List.of();
+            }
+
+            List<Specialization> specializations = specializationRepository
+                    .findBySpecNameContainingIgnoreCase(searchTerm.trim());
+
+            List<SpecializationResponseDto> result = specializations.stream()
+                    .map(specializationMapper::toResponseDto)
+                    .toList();
+
+            log.info("Found {} specializations matching search term: '{}'", result.size(), searchTerm);
+            return result;
+
+        } catch (Exception e) {
+            log.error("Failed to search specializations with term: '{}'", searchTerm, e);
+            throw new SpecializationProcessingException(
+                    String.format("Failed to search specializations with term '%s'", searchTerm), e);
         }
     }
 
