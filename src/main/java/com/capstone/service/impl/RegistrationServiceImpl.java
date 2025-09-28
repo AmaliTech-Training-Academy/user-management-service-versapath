@@ -25,9 +25,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -247,23 +249,46 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
     private void assignSpecializationsToMentor(User mentor, List<UUID> specializationIds) {
-        for (UUID specializationId : specializationIds) {
-            // Use findBySpecId instead of findById
-            Specialization specialization = specializationRepository.findBySpecId(specializationId)
-                    .orElseThrow(() -> new SpecializationNotFoundException("Specialization not found: " + specializationId));
+        if (specializationIds == null || specializationIds.isEmpty()) {
+            return;
+        }
 
-            // Check if relationship already exists using specId
-            if (!mentorSpecializationRepository.existsByUserIdAndSpecializationSpecId(mentor.getId(), specializationId)) {
-                // Create MentorSpecialization relationship
-                MentorSpecialization mentorSpec = MentorSpecialization.builder()
+        // Single query to get existing specializations for this mentor
+        Set<UUID> existingSpecIds = mentorSpecializationRepository.findSpecializationSpecIdsByUserId(mentor.getId());
+
+        // Filter out already existing specializations
+        List<UUID> newSpecIds = specializationIds.stream()
+                .filter(specId -> !existingSpecIds.contains(specId))
+                .toList();
+
+        if (newSpecIds.isEmpty()) {
+            log.info("All specializations already assigned to mentor '{}'", mentor.getEmail());
+            return;
+        }
+
+        // Single query to get all needed specializations
+        List<Specialization> specializations = specializationRepository.findAllBySpecIds(newSpecIds);
+
+        if (specializations.isEmpty()) {
+            log.warn("No valid specializations found for UUIDs: {}", newSpecIds);
+            return;
+        }
+
+        // Create MentorSpecialization entities (no DB calls here)
+        List<MentorSpecialization> mentorSpecializations = specializations.stream()
+                .map(specialization -> MentorSpecialization.builder()
                         .user(mentor)
                         .specialization(specialization)
-                        .build();
+                        .assignedAt(LocalDateTime.now())
+                        .updatedAt(LocalDateTime.now())
+                        .build())
+                .toList();
 
-                mentorSpecializationRepository.save(mentorSpec);
-                log.debug("Assigned specialization '{}' to mentor '{}'", specialization.getSpecName(), mentor.getEmail());
-            }
-        }
+        // Single batch insert (JPA handles ID generation properly)
+        mentorSpecializationRepository.saveAll(mentorSpecializations);
+
+        log.info("Bulk assigned {} new specializations to mentor '{}'",
+                mentorSpecializations.size(), mentor.getEmail());
     }
 
     private void publishMentorCreatedEvent(User mentor) {
