@@ -36,4 +36,7 @@ public class LoginResponseDto {
 
     @Schema(description = "User's role name", example = "ADMIN")
     private String role;
+
+    @Schema(description = "Indicates if user needs onboarding", example = "true")
+    private boolean requiresOnboarding;
 }

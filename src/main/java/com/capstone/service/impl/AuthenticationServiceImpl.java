@@ -1,5 +1,6 @@
 package com.capstone.service.impl;
 
+import com.capstone.dto.response.*;
 import com.capstone.model.EStatus;
 import com.capstone.model.User;
 import com.capstone.service.AuthenticationService;
@@ -10,10 +11,6 @@ import com.capstone.service.SessionManagementService;
 import com.capstone.util.CookieUtil;
 import com.capstone.util.JwtAuthUtil;
 import com.capstone.dto.request.LoginRequestDto;
-import com.capstone.dto.response.LoginResponseDto;
-import com.capstone.dto.response.LogoutResponseDto;
-import com.capstone.dto.response.RefreshTokenResponseDto;
-import com.capstone.dto.response.UserProfileDto;
 import com.capstone.mapper.UserMapper;
 import com.capstone.service.TokenBlacklistService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,6 +29,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
@@ -150,6 +148,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .phoneNumber(user.getPhoneNumber())
                 .profilePictureUrl(profilePictureUrl)
                 .role(user.getRole().getRole().name())
+                .requiresOnboarding(user.isNewUser())
                 .build();
 
         log.info("Login successful for user: {} (Active sessions: {}/{})",
@@ -300,6 +299,29 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
 
         return userProfileDto;
+    }
+
+    @Override
+    @Transactional
+    public ApiResponseDto<String> completeOnboarding() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
+            throw new RuntimeException("No authenticated user found");
+        }
+
+        User user = userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getOnBoardAt() != null) {
+            return ApiResponseDto.success("User has already completed onboarding");
+        }
+
+        user.setOnBoardAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        log.info("User {} completed onboarding", user.getEmail());
+        return ApiResponseDto.success("Onboarding completed successfully");
     }
 
     /**
