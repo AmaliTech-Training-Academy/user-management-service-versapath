@@ -301,29 +301,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         return userProfileDto;
     }
 
-    @Override
-    @Transactional
-    public ApiResponseDto<String> completeOnboarding() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
-            throw new RuntimeException("No authenticated user found");
-        }
-
-        User user = userRepository.findById(userDetails.getId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        if (user.getOnBoardAt() != null) {
-            return ApiResponseDto.success("User has already completed onboarding");
-        }
-
-        user.setOnBoardAt(LocalDateTime.now());
-        userRepository.save(user);
-
-        log.info("User {} completed onboarding", user.getEmail());
-        return ApiResponseDto.success("Onboarding completed successfully");
-    }
-
     /**
      * Extract client IP address from request
      */
