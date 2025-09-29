@@ -13,13 +13,13 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = {"learners", "mentor", "role"})
+@ToString(exclude = {"learners", "mentor", "role", "password", "resetToken"})
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "full_name")
+    @Column(name = "first_name")
     private String firstName;
 
     @Column(name = "last_name")
@@ -59,6 +59,9 @@ public class User {
     @Column(nullable = false)
     private EStatus status;
 
+    @Column(name = "on_board_at")
+    private LocalDateTime onBoardAt;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -70,6 +73,10 @@ public class User {
 
     @Column(name = "reset_token_expires_at")
     private LocalDateTime resetTokenExpiresAt;
+
+    public boolean isNewUser() {
+        return this.onBoardAt == null;
+    }
 
     @PrePersist
     protected void onCreate() {
