@@ -10,5 +10,4 @@ public interface AuthenticationService {
     RefreshTokenResponseDto refreshToken(HttpServletRequest request, HttpServletResponse response);
     LogoutResponseDto logout(HttpServletResponse response, HttpServletRequest request);
     UserProfileDto getCurrentUser();
-    ApiResponseDto<String> completeOnboarding();
 }
