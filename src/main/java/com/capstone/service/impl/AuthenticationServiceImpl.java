@@ -1,6 +1,7 @@
 package com.capstone.service.impl;
 
 import com.capstone.dto.response.*;
+import com.capstone.model.ERole;
 import com.capstone.model.EStatus;
 import com.capstone.model.User;
 import com.capstone.service.AuthenticationService;
@@ -29,7 +30,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
@@ -148,7 +148,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .phoneNumber(user.getPhoneNumber())
                 .profilePictureUrl(profilePictureUrl)
                 .role(user.getRole().getRole().name())
-                .requiresOnboarding(user.isNewUser())
+                .requiresOnboarding(user.isNewUser() && user.getRole().getRole() == ERole.LEARNER)
                 .build();
 
         log.info("Login successful for user: {} (Active sessions: {}/{})",
