@@ -148,6 +148,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .phoneNumber(user.getPhoneNumber())
                 .profilePictureUrl(profilePictureUrl)
                 .role(user.getRole().getRole().name())
+                .moodleUserId(user.getRole().getRole() == ERole.LEARNER ? user.getMoodleUserId() : null)
                 .requiresOnboarding(user.isNewUser() && user.getRole().getRole() == ERole.LEARNER)
                 .build();
 
