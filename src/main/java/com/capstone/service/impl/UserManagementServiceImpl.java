@@ -123,6 +123,7 @@ public class UserManagementServiceImpl implements UserManagementService {
                         .firstName(updatedUser.getFirstName())
                         .lastName(updatedUser.getLastName())
                         .username(updatedUser.getUsername())
+                        .imageUrl(updatedUser.getProfilePictureUrl())
                         .build();
 
                 kafkaProducer.produceUserUpdate(userUpdateEvent);
@@ -145,6 +146,7 @@ public class UserManagementServiceImpl implements UserManagementService {
                         .firstName(updatedUser.getFirstName())
                         .lastName(updatedUser.getLastName())
                         .username(updatedUser.getUsername())
+                        .imageUrl(updatedUser.getProfilePictureUrl())
                         .specializations(specializationIds)
                         .build();
 
