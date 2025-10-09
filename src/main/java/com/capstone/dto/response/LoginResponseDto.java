@@ -37,6 +37,9 @@ public class LoginResponseDto {
     @Schema(description = "User's role name", example = "ADMIN")
     private String role;
 
+    @Schema(description = "Moodle user ID (only for learners)", example = "12345")
+    private Long moodleUserId;
+
     @Schema(description = "Indicates if user needs onboarding", example = "true")
     private boolean requiresOnboarding;
 }
